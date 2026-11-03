@@ -65,7 +65,7 @@ export default async function Accueil() {
       </p>
 
       <section className="carte mb-6 overflow-hidden">
-        <div className="flex items-center justify-between border-b border-gray-100 bg-sjr-jaune-clair px-4 py-3">
+        <div className="flex items-center justify-between border-b border-gray-100 bg-sjr-attente-doux px-4 py-3">
           <h2 className="titre-section">À traiter <span className="ml-1 badge bg-white text-gray-700">{aTraiter.length}</span></h2>
         </div>
         <Tableau lignes={aTraiter} vide="Rien à faire pour le moment." />
@@ -90,7 +90,7 @@ export default async function Accueil() {
       {termines.length > 0 && (
         <details className="carte mb-6 overflow-hidden">
           <summary className="cursor-pointer border-b border-gray-100 px-4 py-3 font-bold">
-            Mon équipe – terminés <span className="ml-1 badge bg-sjr-vert-clair text-sjr-vert-fonce">{termines.length}</span>
+            Mon équipe – terminés <span className="ml-1 badge bg-sjr-primaire-doux text-sjr-primaire-fonce">{termines.length}</span>
           </summary>
           <Tableau lignes={termines} vide="" />
         </details>

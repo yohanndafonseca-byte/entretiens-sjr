@@ -42,7 +42,7 @@ export default async function PageImport() {
             }
           />
         ) : (
-          <div className="carte p-5 text-sm">Pour importer les circuits, <Link href="/admin/campagnes" className="text-sjr-vert-fonce underline">créez d'abord une campagne</Link>.</div>
+          <div className="carte p-5 text-sm">Pour importer les circuits, <Link href="/admin/campagnes" className="text-sjr-primaire-fonce underline">créez d'abord une campagne</Link>.</div>
         )}
       </div>
     </Coquille>

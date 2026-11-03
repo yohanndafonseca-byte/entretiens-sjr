@@ -3,7 +3,7 @@ import { Coquille } from "@/components/Entete";
 
 const Bloc = ({ titre, children }: { titre: string; children: React.ReactNode }) => (
   <section className="carte p-5">
-    <h2 className="mb-3 text-lg font-bold text-sjr-vert-fonce">{titre}</h2>
+    <h2 className="mb-3 text-lg font-bold text-sjr-primaire-fonce">{titre}</h2>
     <div className="space-y-2 text-sm leading-relaxed text-gray-700">{children}</div>
   </section>
 );

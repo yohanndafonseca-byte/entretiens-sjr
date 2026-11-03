@@ -13,7 +13,7 @@ Pour la personne qui fait vivre l'application (RH), sans être développeuse.
 | **Vercel Cron** | Relances automatiques à 7 h, du lundi au vendredi | `vercel.json` |
 | **SMTP** | Envoi des e-mails (Outlook / Microsoft 365 ou autre) | variables d'environnement |
 
-Même pile que l'application de recrutement : même compte Vercel, même compte Turso (une base séparée).
+Même hébergeur (Vercel, région Dublin) et même base (Turso, une base séparée) que l'application Recrutement (`prototype-sjr-recrutement`), même charte graphique. Le code est plus récent (Next.js 15, TypeScript) : à harmoniser si les deux applications sont un jour réunies.
 
 Organisation du code :
 
@@ -126,7 +126,7 @@ E-mails envoyés automatiquement :
 | Modifier le texte des voies de recours ou la mise en page du PDF | `src/lib/pdf.tsx` |
 | Modifier le texte des e-mails | `src/lib/workflow.ts` |
 | Changer l'heure des relances | `vercel.json` (format cron, heure UTC) |
-| Couleurs | `src/app/globals.css` (bloc `@theme`) |
+| Couleurs (charte commune avec Recrutement) | `src/app/globals.css` (bloc `@theme`) |
 
 **Ajouter un critère ne casse pas les anciens comptes rendus.** Les PDF des dossiers terminés sont figés et ne changent pas.
 

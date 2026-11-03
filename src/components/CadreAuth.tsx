@@ -8,7 +8,7 @@ export function CadreAuth({ titre, sousTitre, children }: { titre: string; sousT
           <h1 className="text-xl font-bold">{titre}</h1>
           {sousTitre && <p className="mt-1 text-sm text-gray-500">{sousTitre}</p>}
         </div>
-        <div className="carte border-t-4 border-t-sjr-vert p-6">{children}</div>
+        <div className="carte border-t-4 border-t-sjr-primaire p-6">{children}</div>
       </div>
     </main>
   );

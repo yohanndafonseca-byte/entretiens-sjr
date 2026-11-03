@@ -52,7 +52,7 @@ function Zone({ value, onChange, disabled, rows = 3, placeholder }: { value: str
 function Section({ id, titre, children, aide }: { id: string; titre: string; children: React.ReactNode; aide?: string }) {
   return (
     <section id={id} className="carte scroll-mt-24 p-5">
-      <h2 className="mb-1 text-base font-bold text-sjr-vert-fonce">{titre}</h2>
+      <h2 className="mb-1 text-base font-bold text-sjr-primaire-fonce">{titre}</h2>
       {aide && <p className="mb-4 text-xs text-gray-500">{aide}</p>}
       <div className="space-y-4">{children}</div>
     </section>
@@ -76,9 +76,9 @@ function Pastilles({ note, onChange, disabled }: { note: number | null; onChange
             className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs transition ${
               actif
                 ? e.valeur === 4
-                  ? "border-sjr-vert bg-sjr-vert-clair text-sjr-vert-fonce"
+                  ? "border-sjr-primaire bg-sjr-primaire-doux text-sjr-primaire-fonce"
                   : e.valeur === 3
-                    ? "border-yellow-400 bg-sjr-jaune-clair text-yellow-900"
+                    ? "border-yellow-400 bg-sjr-attente-doux text-yellow-900"
                     : e.valeur === 2
                       ? "border-red-300 bg-red-50 text-red-800"
                       : "border-gray-400 bg-gray-100 text-gray-800"
@@ -101,7 +101,7 @@ function Pastilles({ note, onChange, disabled }: { note: number | null; onChange
 function BoutonAjout({ onClick, children, disabled }: { onClick: () => void; children: React.ReactNode; disabled: boolean }) {
   if (disabled) return null;
   return (
-    <button type="button" onClick={onClick} className="btn-secondaire border-dashed text-sjr-vert-fonce">
+    <button type="button" onClick={onClick} className="btn-secondaire border-dashed text-sjr-primaire-fonce">
       + {children}
     </button>
   );
@@ -230,7 +230,7 @@ export function FormulaireCR({ id, editable, contenuInitial, dateInitiale, entet
       <div className="sticky top-0 z-30 -mx-1 mb-4 flex flex-wrap items-center gap-2 rounded-b-xl border-b border-gray-200 bg-white/95 px-3 py-2 shadow-sm backdrop-blur">
         <nav className="flex flex-1 flex-wrap gap-1 text-xs">
           {SECTIONS.map((s) => (
-            <a key={s.id} href={`#${s.id}`} className="rounded-md px-2 py-1 text-gray-600 hover:bg-sjr-vert-clair hover:text-sjr-vert-fonce">{s.label}</a>
+            <a key={s.id} href={`#${s.id}`} className="rounded-md px-2 py-1 text-gray-600 hover:bg-sjr-primaire-doux hover:text-sjr-primaire-fonce">{s.label}</a>
           ))}
         </nav>
         {editable && (
@@ -289,7 +289,7 @@ export function FormulaireCR({ id, editable, contenuInitial, dateInitiale, entet
           {c.objectifsPrecedents.map((o, i) => (
             <div key={i} className="grid gap-3 rounded-lg border border-gray-100 p-3 md:grid-cols-12">
               <div className="md:col-span-5">
-                <label className="etiquette">Objectif {o.ajouteEnCours && <span className="badge ml-1 bg-sjr-jaune-clair normal-case text-yellow-800">ajouté en cours d'année</span>}</label>
+                <label className="etiquette">Objectif {o.ajouteEnCours && <span className="badge ml-1 bg-sjr-attente-doux normal-case text-yellow-800">ajouté en cours d'année</span>}</label>
                 <Zone value={o.objectif} disabled={dis} rows={2} onChange={(t) => maj((x) => ((x.objectifsPrecedents[i].objectif = t), x))} />
               </div>
               <div className="md:col-span-3">
@@ -475,17 +475,17 @@ export function FormulaireCR({ id, editable, contenuInitial, dateInitiale, entet
           {voeuTexte("environnement", "Environnement du poste", "Besoins matériel, hygiène et sécurité au travail…")}
           {voeuTexte("organisation", "Organisation du travail")}
           {voeuTexte("autres", "Autres vœux")}
-          <div className="rounded-lg border-2 border-sjr-vert/30 bg-sjr-vert-clair/40 p-3">
-            <label className="etiquette text-sjr-vert-fonce">Appréciation générale de la valeur professionnelle de l'agent par le/la responsable hiérarchique direct/e *</label>
+          <div className="rounded-lg border-2 border-sjr-primaire/30 bg-sjr-primaire-doux/40 p-3">
+            <label className="etiquette text-sjr-primaire-fonce">Appréciation générale de la valeur professionnelle de l'agent par le/la responsable hiérarchique direct/e *</label>
             <Zone value={c.appreciationGenerale} disabled={dis} rows={6} onChange={(t) => maj((x) => ((x.appreciationGenerale = t), x))} />
           </div>
         </Section>
 
         {editable && (
-          <section className="carte border-t-4 border-t-sjr-vert p-5">
+          <section className="carte border-t-4 border-t-sjr-primaire p-5">
             <h2 className="mb-2 text-base font-bold">Viser et transmettre</h2>
             {manques.length ? (
-              <div className="mb-3 rounded-lg bg-sjr-jaune-clair p-3 text-sm text-yellow-900">
+              <div className="mb-3 rounded-lg bg-sjr-attente-doux p-3 text-sm text-yellow-900">
                 <p className="font-medium">Avant de viser, il reste à compléter :</p>
                 <ul className="ml-5 list-disc">{manques.map((m) => <li key={m}>{m}</li>)}</ul>
               </div>

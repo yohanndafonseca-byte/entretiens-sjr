@@ -61,12 +61,12 @@ export default async function PageAgents({ searchParams }: { searchParams: Promi
               const d = dossierDe.get(a.id);
               return (
                 <tr key={a.id} className={a.actif ? "" : "opacity-50"}>
-                  <td className="font-medium">{a.nom} {a.prenom} {a.isAdmin && <span className="badge ml-1 bg-sjr-vert-clair text-sjr-vert-fonce">RH</span>}</td>
+                  <td className="font-medium">{a.nom} {a.prenom} {a.isAdmin && <span className="badge ml-1 bg-sjr-primaire-doux text-sjr-primaire-fonce">RH</span>}</td>
                   <td>{a.matricule}</td>
                   <td className="text-xs text-gray-600">{a.niv3}<br />{a.niv4}</td>
                   <td className="text-xs">{a.collectivite} · {a.statut ?? "—"}</td>
                   <td className="text-xs">{a.email ?? <span className="text-gray-400">—</span>}</td>
-                  <td className="text-xs">{d ? <Link className="text-sjr-vert-fonce hover:underline" href={`/entretiens/${d.id}`}>{d.statut === "termine" ? "Terminé" : d.statut === "circuit" ? "En visa" : "En rédaction"}</Link> : <span className="text-gray-400">—</span>}</td>
+                  <td className="text-xs">{d ? <Link className="text-sjr-primaire-fonce hover:underline" href={`/entretiens/${d.id}`}>{d.statut === "termine" ? "Terminé" : d.statut === "circuit" ? "En visa" : "En rédaction"}</Link> : <span className="text-gray-400">—</span>}</td>
                   <td className="text-right"><Link href={`/admin/agents/${a.id}`} className="btn-secondaire py-1 text-xs">Gérer</Link></td>
                 </tr>
               );

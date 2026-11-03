@@ -12,7 +12,7 @@ export default async function PageEmails() {
   return (
     <Coquille u={u}>
       <h1 className="mb-1 text-2xl font-bold">E-mails</h1>
-      <p className={`mb-4 rounded-lg p-3 text-sm ${smtp ? "bg-sjr-vert-clair text-sjr-vert-fonce" : "bg-sjr-jaune-clair text-yellow-900"}`}>
+      <p className={`mb-4 rounded-lg p-3 text-sm ${smtp ? "bg-sjr-primaire-doux text-sjr-primaire-fonce" : "bg-sjr-attente-doux text-yellow-900"}`}>
         {smtp
           ? "Le serveur d'envoi (SMTP) est configuré : les e-mails partent réellement."
           : "Aucun serveur d'envoi (SMTP) n'est configuré : les e-mails sont seulement enregistrés ci-dessous, rien ne part. Voir le guide de maintenance."}

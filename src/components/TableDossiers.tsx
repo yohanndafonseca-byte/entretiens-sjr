@@ -48,7 +48,7 @@ export function TableDossiers({ lignes, seuil }: { lignes: LigneVue[]; seuil: nu
         >
           Relancer la sélection
         </button>
-        {msg && <span className="text-sm text-sjr-vert-fonce">{msg}</span>}
+        {msg && <span className="text-sm text-sjr-primaire-fonce">{msg}</span>}
       </div>
       <div className="overflow-x-auto">
         <table className="tableau">

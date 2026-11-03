@@ -1,25 +1,31 @@
 @import "tailwindcss";
 
 @theme {
-  --color-sjr-vert: #00aa40;
-  --color-sjr-vert-fonce: #00802f;
-  --color-sjr-vert-clair: #e6f6ec;
-  --color-sjr-jaune: #fef500;
-  --color-sjr-jaune-clair: #fffde0;
-  --color-sjr-gris: #99999b;
-  --color-encre: #1f2933;
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  /* Charte commune avec l'application Recrutement (prototype-sjr-recrutement) */
+  --color-sjr-primaire: #1f7f8c;
+  --color-sjr-primaire-fonce: #14606b;
+  --color-sjr-primaire-doux: #e3f1f3;
+  --color-sjr-accent: #6aa84f;
+  --color-sjr-accent-fonce: #52863d;
+  --color-sjr-attente: #f2b33d;
+  --color-sjr-attente-doux: #fff6e0;
+  --color-sjr-gris: #5c6b70;
+  --color-sjr-ligne: #e2eaec;
+  --color-sjr-fond: #f3f6fa;
+  --color-encre: #17282c;
+  --shadow-carte: 0 1px 2px rgba(16, 32, 52, 0.04), 0 4px 16px rgba(16, 32, 52, 0.06);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 html { color-scheme: light; }
-body { background: #f5f6f4; color: var(--color-encre); }
+body { background: var(--color-sjr-fond); color: var(--color-encre); font-feature-settings: "kern", "liga"; }
 
-@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50; }
-@utility btn-primaire { @apply btn bg-sjr-vert text-white hover:bg-sjr-vert-fonce; }
-@utility btn-secondaire { @apply btn border border-gray-300 bg-white text-gray-800 hover:bg-gray-50; }
+@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50; }
+@utility btn-primaire { @apply btn bg-sjr-primaire text-white hover:bg-sjr-primaire-fonce; }
+@utility btn-secondaire { @apply btn border border-sjr-ligne bg-white text-encre hover:border-sjr-primaire hover:text-sjr-primaire; }
 @utility btn-danger { @apply btn border border-red-200 bg-white text-red-700 hover:bg-red-50; }
-@utility carte { @apply rounded-xl border border-gray-200 bg-white shadow-sm; }
-@utility champ { @apply w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-xs outline-none focus:border-sjr-vert focus:ring-2 focus:ring-sjr-vert/20 disabled:bg-gray-50 disabled:text-gray-700; }
+@utility carte { @apply rounded-[14px] border border-sjr-ligne bg-white shadow-carte; }
+@utility champ { @apply w-full rounded-lg border border-sjr-ligne bg-white px-3 py-2 text-sm shadow-xs outline-none focus:border-sjr-primaire focus:ring-3 focus:ring-sjr-primaire-doux disabled:bg-gray-50 disabled:text-gray-700; }
 @utility etiquette { @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500; }
 @utility badge { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium; }
 @utility titre-section { @apply text-lg font-bold text-encre; }

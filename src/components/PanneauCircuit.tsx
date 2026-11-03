@@ -31,7 +31,7 @@ type Props = {
 
 function Message({ m }: { m: { ok: boolean; texte: string } | null }) {
   if (!m) return null;
-  return <p className={`whitespace-pre-line rounded-lg p-2 text-sm ${m.ok ? "bg-sjr-vert-clair text-sjr-vert-fonce" : "bg-red-50 text-red-700"}`}>{m.texte}</p>;
+  return <p className={`whitespace-pre-line rounded-lg p-2 text-sm ${m.ok ? "bg-sjr-primaire-doux text-sjr-primaire-fonce" : "bg-red-50 text-red-700"}`}>{m.texte}</p>;
 }
 
 export function PanneauCircuit(p: Props) {
@@ -78,13 +78,13 @@ export function PanneauCircuit(p: Props) {
         <h2 className="mb-3 font-bold">Circuit de visas</h2>
         <ol className="relative space-y-3 border-l-2 border-gray-200 pl-4 text-sm">
           <li className="relative">
-            <span className={`absolute -left-[23px] top-1 h-3 w-3 rounded-full ${p.visaRedacteurLe ? "bg-sjr-vert" : p.statut === "redaction" ? "bg-sjr-jaune ring-2 ring-yellow-400" : "bg-gray-300"}`} />
+            <span className={`absolute -left-[23px] top-1 h-3 w-3 rounded-full ${p.visaRedacteurLe ? "bg-sjr-primaire" : p.statut === "redaction" ? "bg-sjr-attente ring-2 ring-yellow-400" : "bg-gray-300"}`} />
             <div className="font-medium">{p.redacteur}</div>
             <div className="text-xs text-gray-500">Rédaction et visa du N+1 {p.visaRedacteurLe ? `· visé le ${fr(p.visaRedacteurLe)}` : p.statut === "redaction" ? "· en cours" : ""}</div>
           </li>
           {p.etapes.map((e, i) => (
             <li key={e.ordre} className="relative">
-              <span className={`absolute -left-[23px] top-1 h-3 w-3 rounded-full ${e.viseLe ? "bg-sjr-vert" : e.courante ? "bg-sjr-jaune ring-2 ring-yellow-400" : "bg-gray-300"}`} />
+              <span className={`absolute -left-[23px] top-1 h-3 w-3 rounded-full ${e.viseLe ? "bg-sjr-primaire" : e.courante ? "bg-sjr-attente ring-2 ring-yellow-400" : "bg-gray-300"}`} />
               <div className="font-medium">
                 {e.nom}
                 {e.estAgent && <span className="badge ml-1 bg-gray-100 text-gray-600">{i === p.etapes.length - 1 ? "agent – visa final" : "agent"}</span>}
@@ -100,13 +100,13 @@ export function PanneauCircuit(p: Props) {
             </li>
           ))}
         </ol>
-        {p.statut === "termine" && <p className="mt-3 rounded-lg bg-sjr-vert-clair p-2 text-sm font-medium text-sjr-vert-fonce">✓ Compte rendu définitif</p>}
+        {p.statut === "termine" && <p className="mt-3 rounded-lg bg-sjr-primaire-doux p-2 text-sm font-medium text-sjr-primaire-fonce">✓ Compte rendu définitif</p>}
       </div>
 
       <Message m={msg} />
 
       {p.droits.viser && courante && (
-        <div className="carte border-t-4 border-t-sjr-jaune p-4">
+        <div className="carte border-t-4 border-t-sjr-attente p-4">
           <h2 className="mb-2 font-bold">{p.droits.estAgent ? (p.derniereEtapeAgent ? "Visa final" : "Votre visa") : "Votre visa"}</h2>
           <p className="mb-3 text-xs text-gray-600">
             {p.droits.estAgent

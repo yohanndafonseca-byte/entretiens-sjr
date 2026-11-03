@@ -14,8 +14,8 @@ export default async function PageExports({ searchParams }: { searchParams: Prom
   const directions = [...new Set(lignes.map((l) => l.niv3).filter(Boolean))].sort();
   const nbTermines = lignes.filter((l) => l.statut === "termine").length;
   const xl = (type: string, titre: string, desc: string) => (
-    <a href={`/api/export/excel?campagne=${choisie.id}&type=${type}`} className="carte block p-4 transition hover:border-sjr-vert">
-      <div className="font-bold text-sjr-vert-fonce">{titre} ↓</div>
+    <a href={`/api/export/excel?campagne=${choisie.id}&type=${type}`} className="carte block p-4 transition hover:border-sjr-primaire">
+      <div className="font-bold text-sjr-primaire-fonce">{titre} ↓</div>
       <div className="text-sm text-gray-600">{desc}</div>
     </a>
   );

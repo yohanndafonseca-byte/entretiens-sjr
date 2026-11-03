@@ -45,7 +45,7 @@ export function Legende({ items }: { items: Omit<Segment, "valeur">[] }) {
 
 export function Tuile({ titre, valeur, detail, accent }: { titre: string; valeur: string | number; detail?: string; accent?: boolean }) {
   return (
-    <div className={`carte p-4 ${accent ? "border-t-4 border-t-sjr-vert" : ""}`}>
+    <div className={`carte p-4 ${accent ? "border-t-4 border-t-sjr-primaire" : ""}`}>
       <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{titre}</div>
       <div className="mt-1 text-3xl font-bold text-encre">{valeur}</div>
       {detail && <div className="mt-1 text-xs text-gray-500">{detail}</div>}
@@ -53,5 +53,5 @@ export function Tuile({ titre, valeur, detail, accent }: { titre: string; valeur
   );
 }
 
-/** Rampe séquentielle verte (une seule teinte, du clair au foncé) pour les échelles ordonnées. */
-export const RAMPE = { clair: "#c4e8d0", moyen: "#4fbf78", fonce: "#00802f", neutre: "#b8bcc2" };
+/** Rampe séquentielle bleu canard (couleur principale de la charte) (une seule teinte, du clair au foncé) pour les échelles ordonnées. */
+export const RAMPE = { clair: "#bfe0e4", moyen: "#4fa3ad", fonce: "#14606b", neutre: "#b8bcc2" };

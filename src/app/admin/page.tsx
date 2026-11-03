@@ -149,7 +149,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pr
         <section className="carte p-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="titre-section">Qui bloque ?</h2>
-            <Link href={`/admin/dossiers?campagne=${choisie.id}&retard=1`} className="text-sm text-sjr-vert-fonce hover:underline">Relancer les retardataires →</Link>
+            <Link href={`/admin/dossiers?campagne=${choisie.id}&retard=1`} className="text-sm text-sjr-primaire-fonce hover:underline">Relancer les retardataires →</Link>
           </div>
           {bloqueurs.length ? (
             <table className="tableau">

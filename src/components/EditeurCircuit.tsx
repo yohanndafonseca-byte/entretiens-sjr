@@ -106,7 +106,7 @@ export function EditeurCircuit({
           ))}
         </ol>
       )}
-      {msg && <p className={`rounded-lg p-2 text-sm ${msg.ok ? "bg-sjr-vert-clair text-sjr-vert-fonce" : "bg-red-50 text-red-700"}`}>{msg.texte}</p>}
+      {msg && <p className={`rounded-lg p-2 text-sm ${msg.ok ? "bg-sjr-primaire-doux text-sjr-primaire-fonce" : "bg-red-50 text-red-700"}`}>{msg.texte}</p>}
     </div>
   );
 }
@@ -120,7 +120,7 @@ function EtapeRemplacable({ e, personnes, onMsg, agentId }: { e: EtapeVue; perso
         <span className="w-6 text-right text-xs text-gray-400">{e.ordre}.</span>
         <span className="min-w-48 flex-1 font-medium">{nom}</span>
         {e.vise ? (
-          <span className="badge bg-sjr-vert-clair text-sjr-vert-fonce">visé</span>
+          <span className="badge bg-sjr-primaire-doux text-sjr-primaire-fonce">visé</span>
         ) : e.acteurId === agentId ? (
           <span className="badge bg-gray-100 text-gray-600">agent</span>
         ) : (

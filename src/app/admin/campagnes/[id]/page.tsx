@@ -35,7 +35,7 @@ export default async function PageCampagne({ params }: { params: Promise<{ id: s
         <input type="hidden" name="libelle" value={s.libelle} />
         <textarea name="texte" rows={3} defaultValue={o?.texte ?? ""} className="champ" placeholder="Objectifs…" />
         <button className="btn-secondaire py-1 text-xs">Enregistrer</button>
-        {o?.texte && <span className="ml-2 text-xs text-sjr-vert-fonce">✓ renseigné</span>}
+        {o?.texte && <span className="ml-2 text-xs text-sjr-primaire-fonce">✓ renseigné</span>}
       </form>
     );
   };
@@ -73,7 +73,7 @@ export default async function PageCampagne({ params }: { params: Promise<{ id: s
             <div className="mt-3 space-y-4">
               <div><div className="etiquette">Objectifs de la direction</div><FormObj s={d} /></div>
               {poles.filter((p) => p.parent === d.libelle).sort((x, y) => x.libelle.localeCompare(y.libelle)).map((p) => (
-                <div key={p.code} className="border-l-4 border-sjr-vert-clair pl-4"><div className="etiquette">Pôle : {p.libelle}</div><FormObj s={p} /></div>
+                <div key={p.code} className="border-l-4 border-sjr-primaire-doux pl-4"><div className="etiquette">Pôle : {p.libelle}</div><FormObj s={p} /></div>
               ))}
             </div>
           </details>

@@ -104,7 +104,7 @@ export default async function PageAgent({ params, searchParams }: { params: Prom
                   <ChangerRedacteur entretienId={dossier.id} personnes={personnes} actuel={dossier.redacteurId} />
                 </div>
               )}
-              {dossier && <Link href={`/entretiens/${dossier.id}`} className="mt-4 inline-block text-sm text-sjr-vert-fonce hover:underline">Ouvrir le dossier {choisie.annee} →</Link>}
+              {dossier && <Link href={`/entretiens/${dossier.id}`} className="mt-4 inline-block text-sm text-sjr-primaire-fonce hover:underline">Ouvrir le dossier {choisie.annee} →</Link>}
             </>
           ) : (
             <p className="text-sm text-gray-500">Aucune campagne.</p>
@@ -114,7 +114,7 @@ export default async function PageAgent({ params, searchParams }: { params: Prom
               <h3 className="mb-2 text-sm font-bold">Historique des entretiens</h3>
               <ul className="text-sm">
                 {historiqueDossiers.sort((x, y) => y.annee - x.annee).map((h) => (
-                  <li key={h.id}><Link className="text-sjr-vert-fonce hover:underline" href={`/entretiens/${h.id}`}>{h.annee}</Link> – {h.statut === "termine" ? "terminé" : h.statut === "circuit" ? "en visa" : "en rédaction"}</li>
+                  <li key={h.id}><Link className="text-sjr-primaire-fonce hover:underline" href={`/entretiens/${h.id}`}>{h.annee}</Link> – {h.statut === "termine" ? "terminé" : h.statut === "circuit" ? "en visa" : "en rédaction"}</li>
                 ))}
               </ul>
             </div>

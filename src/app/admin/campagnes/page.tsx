@@ -28,7 +28,7 @@ export default async function PageCampagnes() {
                   <td>{c.titre}</td>
                   <td className="text-xs">{c.dateDebut?.split("-").reverse().join("/") ?? "—"} → {c.dateLimite?.split("-").reverse().join("/") ?? "—"}</td>
                   <td>{nb}</td>
-                  <td>{c.statut === "ouverte" ? <span className="badge bg-sjr-vert-clair text-sjr-vert-fonce">ouverte</span> : <span className="badge bg-gray-100 text-gray-600">close</span>}</td>
+                  <td>{c.statut === "ouverte" ? <span className="badge bg-sjr-primaire-doux text-sjr-primaire-fonce">ouverte</span> : <span className="badge bg-gray-100 text-gray-600">close</span>}</td>
                   <td className="text-right"><Link href={`/admin/campagnes/${c.id}`} className="btn-secondaire py-1 text-xs">Paramétrer</Link></td>
                 </tr>
               ))}
