@@ -2,8 +2,9 @@ import "server-only";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { db, schema } from "@/db";
 
-/** Agent « sans accès » : pas d'e-mail, ou ne s'est jamais connecté (code provisoire jamais remplacé). */
-export const sansAcces = (a: { email: string | null; codeProvisoire: string | null }) => !a.email || !!a.codeProvisoire;
+/** Agent « sans accès » : sans outil informatique, ou ne s'est jamais connecté (code provisoire jamais remplacé). */
+export const sansAcces = (a: { email: string | null; codeProvisoire: string | null; profilAcces: string }) =>
+  a.profilAcces === "sans_outil" || (a.profilAcces === "auto" && !a.email) || !!a.codeProvisoire;
 
 /** Dossiers dont l'étape en cours est un visa d'agent sans accès informatique. */
 export async function dossiersPapier(campagneId: number) {

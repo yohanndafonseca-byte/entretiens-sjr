@@ -4,6 +4,7 @@ import { db, schema } from "@/db";
 import { exigerAdmin } from "@/lib/auth";
 import { campagneChoisie } from "@/lib/campagne";
 import { Coquille } from "@/components/Entete";
+import { estSansOutil } from "@/lib/acces";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ export default async function PageAgents({ searchParams }: { searchParams: Promi
       : sp.filtre === "inactifs" ? !a.actif
       : sp.filtre === "admins" ? a.isAdmin
       : sp.filtre === "codes" ? !!a.codeProvisoire && a.actif
+      : sp.filtre === "sansoutil" ? a.actif && estSansOutil(a)
       : true,
     );
 
@@ -32,6 +34,7 @@ export default async function PageAgents({ searchParams }: { searchParams: Promi
     ["", "Tous"],
     ["sansdossier", `Sans dossier ${choisie?.annee ?? ""}`],
     ["sansemail", "Sans e-mail"],
+    ["sansoutil", "Sans outil informatique"],
     ["codes", "Jamais connectés (code provisoire)"],
     ["inactifs", "Partis / inactifs"],
     ["admins", "Administrateurs RH"],
@@ -42,7 +45,7 @@ export default async function PageAgents({ searchParams }: { searchParams: Promi
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Agents & circuits</h1>
         <div className="flex gap-2">
-          <Link href="/admin/agents/codes" className="btn-secondaire">Imprimer les codes provisoires</Link>
+          <Link href="/admin/acces" className="btn-secondaire">Accès et codes</Link>
           <Link href="/admin/import" className="btn-secondaire">Importer l'export</Link>
           <Link href="/admin/agents/nouveau" className="btn-primaire">+ Ajouter un agent</Link>
         </div>

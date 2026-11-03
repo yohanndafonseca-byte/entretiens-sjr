@@ -8,6 +8,7 @@ import { enregistrerAgent, supprimerException } from "@/app/admin/actions";
 import { Coquille } from "@/components/Entete";
 import { BoutonCode, ChangerRedacteur, EditeurCircuit } from "@/components/EditeurCircuit";
 import { SupprimerAgent } from "@/components/SupprimerAgent";
+import { estSansOutil, LIBELLE_PROFIL } from "@/lib/acces";
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +77,16 @@ export default async function PageAgent({ params, searchParams }: { params: Prom
             <div className="text-xs text-gray-500 md:col-span-2">Service : {[a.niv3, a.niv4, a.niv5, a.niv6].filter(Boolean).join(" › ") || "—"}</div>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="actif" defaultChecked={a.actif} /> Agent actif (peut se connecter)</label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="isAdmin" defaultChecked={a.isAdmin} /> Administrateur RH</label>
+            <div className="md:col-span-2">
+              <label className="etiquette" htmlFor="profilAcces">Profil d'accès</label>
+              <select id="profilAcces" name="profilAcces" defaultValue={a.profilAcces} className="champ">
+                {Object.entries(LIBELLE_PROFIL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Actuellement : <strong>{estSansOutil(a) ? "sans outil informatique" : "connecté"}</strong>
+                {estSansOutil(a) ? " – reçoit un nouveau code à chaque campagne." : " – gère son mot de passe seul (lien « Mot de passe oublié »)."}
+              </p>
+            </div>
             <label className="flex items-center gap-2 text-sm md:col-span-2"><input type="checkbox" name="horsCampagne" defaultChecked={a.horsCampagne} /> Non concerné par les entretiens (saisonnier, vacataire…) : aucun dossier créé automatiquement</label>
             <div className="md:col-span-2"><button className="btn-primaire">Enregistrer</button></div>
           </form>

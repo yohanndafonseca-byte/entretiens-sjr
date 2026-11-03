@@ -43,7 +43,10 @@ export default async function Aide() {
           <p>Une correction de fond est nécessaire ? <strong>« Renvoyer en rédaction »</strong> avec un motif : le N+1 corrige et le circuit recommence depuis le début (les visas sont annulés).</p>
         </Bloc>
         <Bloc titre="Mot de passe">
-          <p>Première connexion : matricule + code personnel remis par les RH, puis vous choisissez votre mot de passe. Oubli : demandez un nouveau code aux RH.</p>
+          <p>Première connexion : matricule + code personnel, puis vous choisissez votre mot de passe.</p>
+          <p><strong>Oubli</strong> : lien « Mot de passe ou code oublié ? » sur la page de connexion. Vous recevez un lien par e-mail. Sans adresse e-mail, demandez un nouveau code à votre responsable ou aux RH.</p>
+          <p>Les agents sans outil informatique reçoivent un <strong>nouveau code à chaque campagne</strong> : il est imprimé sur la convocation à l'entretien.</p>
+          <p>Après 5 essais ratés, le compte est bloqué 15 minutes.</p>
           <p>Pour changer votre mot de passe, cliquez sur votre nom en haut à droite.</p>
         </Bloc>
       </div>

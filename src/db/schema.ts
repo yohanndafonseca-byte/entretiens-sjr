@@ -42,6 +42,16 @@ export const agents = sqliteTable(
     codeProvisoire: text("code_provisoire"),
     mustChangePassword: integer("must_change_password", { mode: "boolean" }).notNull().default(true),
     derniereConnexion: integer("derniere_connexion", { mode: "timestamp_ms" }),
+    /** auto (sans e-mail = sans outil) | connecte | sans_outil */
+    profilAcces: text("profil_acces").notNull().default("auto"),
+    /** date de génération du code provisoire en cours */
+    codeGenereLe: integer("code_genere_le", { mode: "timestamp_ms" }),
+    /** protection contre les essais de mots de passe en série */
+    tentativesEchouees: integer("tentatives_echouees").notNull().default(0),
+    bloqueJusqua: integer("bloque_jusqua", { mode: "timestamp_ms" }),
+    /** lien « mot de passe oublié » : empreinte SHA-256 du jeton et expiration */
+    resetJeton: text("reset_jeton"),
+    resetExpire: integer("reset_expire", { mode: "timestamp_ms" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().default(now),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().default(now),
   },

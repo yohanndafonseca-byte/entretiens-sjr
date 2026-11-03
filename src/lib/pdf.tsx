@@ -444,7 +444,7 @@ export function formatDateHeure(local: string) {
   return { date, heure: (h ?? "").slice(0, 5).replace(":", " h ") };
 }
 
-function Convocation({ d, quand, lieu }: { d: NonNullable<Dossier>; quand: string; lieu: string }) {
+function Convocation({ d, quand, lieu, codeAgent }: { d: NonNullable<Dossier>; quand: string; lieu: string; codeAgent: string | null }) {
   const { date, heure } = formatDateHeure(quand);
   const a = d.agent;
   const r = d.redacteur;
@@ -477,6 +477,15 @@ function Convocation({ d, quand, lieu }: { d: NonNullable<Dossier>; quand: strin
         <Text style={p}>
           Vous trouverez ci-joint votre fiche de poste{d.entretien.fichePosteNom ? "" : " (si elle vous a été transmise)"} ainsi qu'un exemplaire de la fiche d'entretien, afin de vous permettre de préparer cet échange.
         </Text>
+        {codeAgent ? (
+          <View style={{ borderWidth: 0.8, borderColor: "#999", padding: 10, marginBottom: 14 }}>
+            <Text style={{ fontSize: 10 }}>
+              Pour viser votre compte rendu après l'entretien : matricule <Text style={{ fontFamily: "Helvetica-Bold" }}>{a.matricule}</Text> – code personnel{" "}
+              <Text style={{ fontFamily: "Courier-Bold", fontSize: 12 }}>{codeAgent}</Text>
+            </Text>
+            <Text style={{ fontSize: 8, color: "#555", marginTop: 3 }}>Ce code est personnel : ne le communiquez à personne.</Text>
+          </View>
+        ) : null}
         <Text style={[p, { marginBottom: 40 }]}>Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.</Text>
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <View style={{ width: "45%" }}>
@@ -497,7 +506,9 @@ function Convocation({ d, quand, lieu }: { d: NonNullable<Dossier>; quand: strin
 }
 
 export async function genererConvocation(d: NonNullable<Dossier>, quand: string, lieu: string): Promise<Buffer> {
-  return renderToBuffer(<Convocation d={d} quand={quand} lieu={lieu} />);
+  // agent sans outil informatique (sans e-mail ou classé comme tel) : son code de campagne figure sur la convocation remise en main propre
+  const sansOutil = d.agent.profilAcces === "sans_outil" || (d.agent.profilAcces === "auto" && !d.agent.email);
+  return renderToBuffer(<Convocation d={d} quand={quand} lieu={lieu} codeAgent={sansOutil ? d.agent.codeProvisoire : null} />);
 }
 
 /** Fiche d'entretien à remettre avec la convocation : le modèle vierge, avec les objectifs de l'an dernier. */
@@ -512,4 +523,47 @@ export async function genererFicheVierge(d: NonNullable<Dossier>): Promise<Buffe
     entretien: { ...d.entretien, dateEntretien: d.entretien.convocationLe?.slice(0, 10) ?? null, visaRedacteurLe: null },
   };
   return renderToBuffer(<CompteRendu d={copie} />);
+}
+
+/* ------------------------------------------------------------------ */
+/* Fiches de code personnel à découper (agents sans outil informatique) */
+/* ------------------------------------------------------------------ */
+
+type FicheCode = { nom: string; prenom: string; matricule: string; codeProvisoire: string | null; niv3: string | null; niv4: string | null };
+
+function FichesCodes({ agents }: { agents: FicheCode[] }) {
+  const adresse = (process.env.APP_URL ?? "").replace(/^https?:\/\//, "").replace(/\/$/, "");
+  return (
+    <Document title="Codes personnels – entretiens professionnels">
+      <Page size="A4" style={{ padding: 24, fontFamily: "Helvetica", flexDirection: "row", flexWrap: "wrap" }}>
+        {agents.map((a) => (
+          <View
+            key={a.matricule}
+            wrap={false}
+            style={{ width: "50%", height: 150, padding: 12, borderWidth: 0.6, borderStyle: "dashed", borderColor: "#888" }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+              {/* eslint-disable-next-line jsx-a11y/alt-text */}
+              <Image src={LOGO_DATA_URI} style={{ width: 26, height: 26, marginRight: 8 }} />
+              <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold" }}>Entretiens professionnels</Text>
+            </View>
+            <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold" }}>{`${a.nom} ${a.prenom}`}</Text>
+            <Text style={{ fontSize: 7.5, color: "#666", marginBottom: 6 }}>{a.niv4 ?? a.niv3 ?? ""}</Text>
+            {adresse ? <Text style={{ fontSize: 9 }}>Adresse : {adresse}</Text> : null}
+            <Text style={{ fontSize: 9 }}>Matricule : {a.matricule}</Text>
+            <Text style={{ fontSize: 9 }}>
+              Code personnel : <Text style={{ fontFamily: "Courier-Bold", fontSize: 13 }}>{a.codeProvisoire ?? ""}</Text>
+            </Text>
+            <Text style={{ fontSize: 7, color: "#666", marginTop: 6 }}>
+              Ce code vous permet de viser votre compte rendu d'entretien, sur le poste de votre responsable ou sur Internet. Il est personnel : ne le communiquez à personne.
+            </Text>
+          </View>
+        ))}
+      </Page>
+    </Document>
+  );
+}
+
+export async function genererFichesCodes(agents: FicheCode[]): Promise<Buffer> {
+  return renderToBuffer(<FichesCodes agents={agents} />);
 }

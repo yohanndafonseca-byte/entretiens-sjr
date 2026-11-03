@@ -72,6 +72,7 @@ async function creerAgent(p: Partial<typeof schema.agents.$inferInsert> & { nom?
       email: opts.email === false ? null : `${prenom.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()}.${nom.toLowerCase()}@exemple.fr`,
       passwordHash: await bcrypt.hash(code ?? MDP_DEMO, 8),
       codeProvisoire: code,
+      codeGenereLe: code ? new Date(Date.now() - 400 * 86_400_000) : null,
       mustChangePassword: !!code,
     })
     .returning();

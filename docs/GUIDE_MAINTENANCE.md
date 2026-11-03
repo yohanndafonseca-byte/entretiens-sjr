@@ -152,6 +152,7 @@ Après une modification : envoyer sur GitHub, et Vercel remet automatiquement l'
 - Données stockées par agent : identité, matricule, e-mail, service, grade, poste, statut, temps de travail, échelon. **Aucune** donnée de salaire, d'adresse ou de date de naissance.
 - Chaque action (visa, renvoi, modification de circuit, import) est tracée dans l'historique du dossier.
 - Mots de passe : stockés chiffrés (bcrypt). Le code provisoire est visible par les RH tant que l'agent ne l'a pas remplacé, pour pouvoir l'imprimer.
+- Blocage de 15 minutes après 5 essais ratés (connexion et visa en présence). Les liens « mot de passe oublié » sont valables 1 heure et une seule fois ; seule leur empreinte est stockée.
 - **À faire avec le DPO** : durée de conservation, inscription au registre des traitements, information des agents.
 
 ---

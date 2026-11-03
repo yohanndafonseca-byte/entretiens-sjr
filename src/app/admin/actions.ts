@@ -97,6 +97,7 @@ export async function enregistrerAgent(fd: FormData) {
       tempsTravail: s("tempsTravail"),
       actif: fd.get("actif") === "on",
       horsCampagne: fd.get("horsCampagne") === "on",
+      profilAcces: ["auto", "connecte", "sans_outil"].includes(String(fd.get("profilAcces"))) ? String(fd.get("profilAcces")) : "auto",
       isAdmin: fd.get("isAdmin") === "on",
       updatedAt: new Date(),
     })
@@ -109,7 +110,7 @@ export async function reinitialiserCode(id: number): Promise<string> {
   const code = genererCode();
   await db
     .update(schema.agents)
-    .set({ passwordHash: await bcrypt.hash(code, 8), codeProvisoire: code, mustChangePassword: true, updatedAt: new Date() })
+    .set({ passwordHash: await bcrypt.hash(code, 8), codeProvisoire: code, codeGenereLe: new Date(), mustChangePassword: true, updatedAt: new Date() })
     .where(eq(schema.agents.id, id));
   await journaliser(null, u.id, "Code personnel réinitialisé", `Agent #${id}`);
   revalidatePath(`/admin/agents/${id}`);
@@ -323,7 +324,7 @@ export async function creerAgent(_: EtatAgent, fd: FormData): Promise<EtatAgent>
       niv4: l4 || null,
       responsables: resp ? { "6": { email: resp.email, nom: `${resp.nom} ${resp.prenom}` } } : null,
       passwordHash: await bcrypt.hash(code, 8),
-      codeProvisoire: code,
+      codeProvisoire: code, codeGenereLe: new Date(),
       mustChangePassword: true,
     })
     .returning();
@@ -409,4 +410,13 @@ async function supprimerEntretien(id: number) {
   await db.delete(schema.recours).where(eq(schema.recours.entretienId, id));
   await db.delete(schema.pdfsDefinitifs).where(eq(schema.pdfsDefinitifs.entretienId, id));
   await db.delete(schema.entretiens).where(eq(schema.entretiens.id, id));
+}
+
+/** Nouvelle campagne : nouveaux codes pour les agents sans outil informatique (+ envoi aux responsables). */
+export async function actionRegenererCodes(envoyerAuxResponsables: boolean, direction: string | null) {
+  const u = await exigerAdmin();
+  const { regenererCodesSansOutil } = await import("@/lib/acces");
+  const r = await regenererCodesSansOutil(u.id, { envoyerAuxResponsables, direction });
+  revalidatePath("/admin", "layout");
+  return r;
 }

@@ -15,10 +15,10 @@ export async function ChecklistCampagne({ c, compacte = false }: { c: Campagne; 
     .where(eq(schema.historique.action, "Import agents"))
     .orderBy(desc(schema.historique.at))
     .limit(1);
-  const [{ codes }] = await db
-    .select({ codes: sql<number>`count(*)` })
-    .from(schema.agents)
-    .where(and(eq(schema.agents.actif, true), isNotNull(schema.agents.codeProvisoire)));
+  const sansOutil = (await db.select().from(schema.agents).where(and(eq(schema.agents.actif, true), eq(schema.agents.horsCampagne, false)))).filter(
+    (a) => a.profilAcces === "sans_outil" || (a.profilAcces === "auto" && !a.email),
+  );
+  const codesAnciens = sansOutil.filter((a) => !a.codeGenereLe || a.codeGenereLe < c.createdAt).length;
   const directions = await db.selectDistinct({ code: schema.agents.niv3Code }).from(schema.agents).where(and(eq(schema.agents.actif, true), isNotNull(schema.agents.niv3Code)));
   const objs = await db.select().from(schema.objectifsServices).where(and(eq(schema.objectifsServices.campagneId, c.id), eq(schema.objectifsServices.niveau, 3)));
   const objsOk = objs.filter((o) => o.texte.trim()).length;
@@ -54,11 +54,13 @@ export async function ChecklistCampagne({ c, compacte = false }: { c: Campagne; 
       action: "Créer",
     },
     {
-      ok: codes === 0,
-      titre: "Remettre leurs codes aux agents",
-      detail: codes ? `${codes} agent(s) ne se sont jamais connectés : imprimez leurs fiches de code` : "Tous les agents se sont connectés au moins une fois",
-      lien: "/admin/agents/codes",
-      action: "Imprimer",
+      ok: codesAnciens === 0,
+      titre: "Renouveler les codes des agents sans outil informatique",
+      detail: codesAnciens
+        ? `${codesAnciens} / ${sansOutil.length} agent(s) ont encore le code d'une campagne précédente`
+        : `${sansOutil.length} code(s) à jour pour cette campagne (envoyés aux responsables, et imprimés sur les convocations)`,
+      lien: "/admin/acces",
+      action: "Renouveler",
     },
     {
       ok: !!process.env.SMTP_HOST,

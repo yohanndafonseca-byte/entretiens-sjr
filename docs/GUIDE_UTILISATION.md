@@ -21,6 +21,8 @@ Chaque agent a **un dossier par campagne** (une campagne = une année). Le dossi
 
 **Se connecter** : matricule + code personnel. À la première connexion, on remplace le code remis par les RH par son propre mot de passe.
 
+**Mot de passe oublié ?** Lien sur la page de connexion. Les agents qui ont un e-mail reçoivent un lien pour en choisir un nouveau, valable une heure. Les autres demandent un nouveau code à leur responsable ou aux RH. Après **5 essais ratés**, le compte est bloqué 15 minutes.
+
 ---
 
 ## 2. Agent
@@ -77,7 +79,7 @@ Menu **Espace RH ▾**.
    - **Exception** : le circuit fixé à la main sur la fiche de l'agent. Il est toujours prioritaire et reste valable les années suivantes.
    - **Comme l'an dernier** (option) : si toutes les personnes sont toujours en poste.
    - **Organigramme** : les responsables des niveaux 6 → 3 de l'export, puis le dernier visa.
-5. **Codes des agents** : imprimez les fiches de code pour ceux qui n'ont pas d'e-mail.
+5. **Renouveler les codes des agents sans outil informatique** (*Accès et codes des agents*) : un clic génère un nouveau code pour chacun d'eux. Chaque responsable direct reçoit par e-mail un **PDF de fiches à découper** pour son équipe, et le code figure aussi sur la **convocation** remise en main propre. Les agents qui ont un e-mail ne sont pas concernés : ils gardent leur mot de passe.
 6. **E-mails** : à activer avec la DSI (voir le guide de maintenance).
 
 ### 5.2 Gérer les exceptions
@@ -90,7 +92,8 @@ Menu **Espace RH ▾**.
 | **Un responsable part ou est absent** | **Remplacer une personne** : en une fois, dans tous les circuits, rédactions et exceptions |
 | Nouvel agent en cours de campagne | **Agents & circuits → + Ajouter un agent** : indiquez son responsable direct, le reste du circuit est déduit automatiquement et son dossier est créé. Pour plusieurs arrivées, réimportez plutôt l'export puis **Créer les dossiers** |
 | Agent parti | Fiche de l'agent → **Supprimer l'agent**. S'il a déjà des comptes rendus visés, il est **archivé** (plus de connexion ni de campagne, documents conservés), sinon il est supprimé définitivement. S'il doit encore viser des dossiers, l'application demande d'abord de le **remplacer** |
-| Mot de passe oublié | Fiche de l'agent → **« Générer un nouveau code »** |
+| Mot de passe oublié | Agent avec e-mail : il se débrouille seul (« Mot de passe oublié »). Sans e-mail : fiche de l'agent → **« Générer un nouveau code »** |
+| Agent qui a un e-mail mais ne l'utilise jamais (ou l'inverse) | Fiche de l'agent → **Profil d'accès** : « Sans outil informatique » ou « Connecté » |
 | Demande de révision ou recours | Dossier terminé → **« Demande de révision / recours »** |
 
 ### 5.3 Agents sans ordinateur : **Visas papier**
@@ -114,6 +117,19 @@ La page liste les agents sans e-mail (ou jamais connectés) dont c'est le tour d
 - **Excel** : suivi de campagne, **besoins de formation** (pour le plan de formation), vœux et mobilité, appréciations.
 
 ---
+
+### 5.6 Accès des agents : deux profils
+
+| | Agents **connectés** | Agents **sans outil informatique** |
+|---|---|---|
+| Qui | Ont un e-mail (profil automatique) | Pas d'e-mail, ou profil forcé par les RH |
+| Mot de passe | Le leur, conservé d'une année sur l'autre | **Nouveau code à chaque campagne** |
+| En cas d'oubli | Lien « Mot de passe oublié » par e-mail | Nouveau code par les RH |
+| Remise du code | — | PDF envoyé au responsable direct + code imprimé sur la convocation |
+
+Pourquoi ne pas tout réinitialiser chaque année ? Les agents connectés perdraient leur mot de passe pour rien, et l'ANSSI déconseille les changements forcés réguliers. Seuls les agents qui se connectent une fois par an, et oublient donc forcément leur code, reçoivent un nouveau code.
+
+> ⚠️ Le responsable qui reçoit les fiches connaît les codes de son équipe. L'e-mail lui demande de les remettre en main propre et de ne pas les conserver. Chaque visa reste tracé (date, poste, mode de visa).
 
 ## 6. Conformité au décret n° 2014-1526 du 16 décembre 2014
 

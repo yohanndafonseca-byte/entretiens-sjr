@@ -11,6 +11,7 @@ const LIENS_ADMIN = [
   { href: "/admin/campagnes", label: "Campagnes" },
   { href: "/admin/import", label: "Agents et dossiers (import)" },
   { href: "/admin/agents", label: "Agents & circuits" },
+  { href: "/admin/acces", label: "Accès et codes des agents" },
   { href: "/admin/remplacer", label: "Remplacer une personne" },
   { href: "/admin/emails", label: "E-mails envoyés" },
 ] as const;

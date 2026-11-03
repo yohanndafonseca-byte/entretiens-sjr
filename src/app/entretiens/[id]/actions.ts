@@ -81,8 +81,17 @@ export async function viserEnPresence(id: number, motDePasseAgent: string, obser
   const { u, d, droits } = await contexte(id);
   if (!droits.recueillirVisaPresence || !d.etapeCourante) return { ok: false, erreur: "Action non autorisée." };
   const agent = d.agent;
-  if (!agent.passwordHash || !(await bcrypt.compare(motDePasseAgent, agent.passwordHash)))
+  if (agent.bloqueJusqua && agent.bloqueJusqua.getTime() > Date.now())
+    return { ok: false, erreur: "Trop d'essais incorrects : le code de l'agent est bloqué 15 minutes. Les RH peuvent aussi enregistrer un visa papier." };
+  if (!agent.passwordHash || !(await bcrypt.compare(motDePasseAgent, agent.passwordHash))) {
+    const n = agent.tentativesEchouees + 1;
+    await db
+      .update(schema.agents)
+      .set(n >= 5 ? { tentativesEchouees: 0, bloqueJusqua: new Date(Date.now() + 15 * 60_000) } : { tentativesEchouees: n })
+      .where(eq(schema.agents.id, agent.id));
     return { ok: false, erreur: "Code personnel de l'agent incorrect." };
+  }
+  await db.update(schema.agents).set({ tentativesEchouees: 0, bloqueJusqua: null }).where(eq(schema.agents.id, agent.id));
   await poserVisa(id, d.etapeCourante.ordre, observations, "en_presence", u.id);
   await journaliser(id, agent.id, "Visa de l'agent (en présence)", `Recueilli sur le poste de ${u.nom} ${u.prenom}`);
   await avancer(id, d.etapeCourante.ordre);

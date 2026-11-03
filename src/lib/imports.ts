@@ -189,7 +189,7 @@ export async function importerAgents(grille: Grille, parId: number, simulation =
         else r.maj++;
       } else {
         const code = genererCode();
-        await db.insert(schema.agents).values({ matricule, ...donnees, actif: !parti, passwordHash: await hashCode(code), codeProvisoire: code, mustChangePassword: true });
+        await db.insert(schema.agents).values({ matricule, ...donnees, actif: !parti, passwordHash: await hashCode(code), codeProvisoire: code, codeGenereLe: new Date(), mustChangePassword: true });
         r.crees++;
         r.codes.push({ matricule, nom: `${donnees.nom} ${donnees.prenom}`, code });
       }
@@ -268,7 +268,7 @@ export async function importerCircuits(grille: Grille, campagneId: number, parId
     const code = genererCode();
     const [a] = await db
       .insert(schema.agents)
-      .values({ matricule, nom: nom ?? `Matricule ${matricule}`, prenom: prenom ?? "", passwordHash: await hashCode(code), codeProvisoire: code })
+      .values({ matricule, nom: nom ?? `Matricule ${matricule}`, prenom: prenom ?? "", passwordHash: await hashCode(code), codeProvisoire: code, codeGenereLe: new Date() })
       .returning();
     parMatricule.set(matricule, a);
     r.codes.push({ matricule, nom: `${a.nom} ${a.prenom}`, code });

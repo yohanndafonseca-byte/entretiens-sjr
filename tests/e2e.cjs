@@ -364,6 +364,70 @@ async function connexion(browser, matricule, mdp = "demo1234") {
     await dgs.ctx.close();
   }
 
+  console.log("7e. Accès : codes de campagne, mot de passe oublié, blocage");
+  {
+    const [ancien] = await q(`select matricule from agents where actif=1 and hors_campagne=0 and email is null and code_provisoire is null and is_admin=0 limit 1`);
+    const { ctx, page } = await connexion(browser, "100001");
+    await page.goto(BASE + "/admin/acces");
+    await page.screenshot({ path: `${OUT}/17-acces.png`, fullPage: true });
+    await page.click("button:has-text('Générer les nouveaux codes')");
+    await page.waitForSelector("text=code(s) renouvelé(s)", { timeout: 60000 });
+    const [n] = await q(`select count(*) n from agents where actif=1 and hors_campagne=0 and (profil_acces='sans_outil' or (profil_acces='auto' and email is null)) and code_genere_le > ?`, [Date.now() - 120000]);
+    const fiches = await q(`select destinataire, corps from emails where sujet like 'Codes personnels de votre équipe%'`);
+    ok(n.n > 0 && fiches.length > 0 && fiches.every((f) => f.corps.includes("Fiches codes personnels.pdf")), `${n.n} code(s) renouvelé(s), fiches PDF envoyées à ${fiches.length} responsable(s)`);
+    const codes = (await q(`select code_provisoire c from agents where code_provisoire is not null and code_genere_le > ?`, [Date.now() - 120000])).map((x) => x.c);
+    ok(codes.length > 0 && fiches.every((f) => codes.every((c) => !f.corps.includes(c))), "aucun code en clair dans le corps des e-mails (seulement dans le PDF joint)");
+    const r = await page.request.get(BASE + "/api/export/codes");
+    ok(r.status() === 200 && (await r.body()).slice(0, 4).toString() === "%PDF", "fiches de code imprimables (PDF)");
+    await ctx.close();
+    // l'ancien mot de passe d'un agent sans outil ne fonctionne plus
+    const p2 = await (await browser.newContext()).newPage();
+    await p2.goto(BASE + "/connexion");
+    await p2.fill("#matricule", ancien.matricule);
+    await p2.fill("#motdepasse", "demo1234");
+    await p2.click("button:has-text('Se connecter')");
+    await p2.waitForSelector("text=incorrect", { timeout: 10000 });
+    ok(true, "ancien mot de passe d'un agent sans outil désactivé");
+
+    // blocage après 5 essais
+    const [cible] = await q(`select matricule from agents where email is not null and is_admin=0 and actif=1 and matricule like '8%' order by matricule desc limit 1`);
+    for (let i = 0; i < 5; i++) {
+      await p2.goto(BASE + "/connexion");
+      await p2.fill("#matricule", cible.matricule);
+      await p2.fill("#motdepasse", "mauvais" + i);
+      await p2.click("button:has-text('Se connecter')");
+      await p2.waitForSelector(".bg-red-50", { timeout: 10000 });
+    }
+    await p2.goto(BASE + "/connexion");
+    await p2.fill("#matricule", cible.matricule);
+    await p2.fill("#motdepasse", "demo1234");
+    await p2.click("button:has-text('Se connecter')");
+    await p2.waitForSelector("text=compte bloqué", { timeout: 10000 });
+    ok(true, "compte bloqué 15 min après 5 essais, même avec le bon mot de passe");
+
+    // mot de passe oublié (agent avec e-mail)
+    const [oubli] = await q(`select matricule from agents where email is not null and is_admin=0 and actif=1 and matricule like '8%' order by matricule desc limit 1 offset 1`);
+    await p2.goto(BASE + "/connexion");
+    await p2.click("text=Mot de passe ou code oublié");
+    await p2.fill("#identifiant", oubli.matricule);
+    await p2.click("button:has-text('Recevoir un lien')");
+    await p2.waitForSelector("text=Si un e-mail est associé", { timeout: 10000 });
+    const [mail] = await q(`select corps from emails where sujet like '%choisir un nouveau mot de passe' order by id desc limit 1`);
+    const lien = mail.corps.match(/\/reinitialiser\?jeton=[0-9a-f]+/)[0];
+    await p2.goto(BASE + lien);
+    await p2.fill("#nouveau", "NouveauMdp2026");
+    await p2.fill("#confirmation", "NouveauMdp2026");
+    await p2.click("button:has-text('Enregistrer et me connecter')");
+    await p2.waitForURL((u) => u.pathname === "/", { timeout: 15000 });
+    ok(true, "mot de passe oublié : lien par e-mail, nouveau mot de passe, connexion");
+    await p2.goto(BASE + lien);
+    await p2.fill("#nouveau", "Encore2026xx");
+    await p2.fill("#confirmation", "Encore2026xx");
+    await p2.click("button:has-text('Enregistrer et me connecter')");
+    await p2.waitForSelector("text=n'est plus valable", { timeout: 10000 });
+    ok(true, "lien de réinitialisation utilisable une seule fois");
+  }
+
   console.log("8. Sécurité");
   {
     const { ctx, page } = await connexion(browser, "900001", (await q(`select code_provisoire c from agents where matricule='900001'`))[0].c);
