@@ -30,38 +30,35 @@ scripts/seed.ts         ← données FICTIVES de démonstration
 
 ---
 
-## 2. Mise en ligne (première fois)
+## 2. Mise en ligne (première fois) – sans aucune commande
 
-1. **GitHub** : créer un dépôt (ex. `entretiens-pro-sjr`) et y envoyer le dossier.
-2. **Turso** : créer une base, par exemple en ligne de commande :
-
-   ```bash
-   turso db create entretiens-pro --location cdg
-   ```
-
-   Récupérer l'**URL** (`libsql://…`) et un **jeton** (`turso db tokens create entretiens-pro`). Choisir une région en Europe (Paris = `cdg`).
-3. **Vercel** : *Add New → Project* → importer le dépôt GitHub. Dans *Settings → Environment Variables*, renseigner :
+1. **Turso** (https://app.turso.tech, même compte que le recrutement) → *Create Database* :
+   - nom : `entretiens-sjr`, région **Europe** ;
+   - copier l'**URL** (`libsql://entretiens-sjr-….turso.io`) ;
+   - *Create Token* → copier le **jeton**.
+2. **Vercel** (même compte que le recrutement) → *Add New… → Project* → importer **`entretiens-sjr`** depuis GitHub.
+3. Avant de cliquer sur *Deploy*, ouvrir **Environment Variables** et ajouter :
 
    | Variable | Valeur |
    |---|---|
-   | `DATABASE_URL` | `libsql://entretiens-pro-xxx.turso.io` |
+   | `DATABASE_URL` | l'URL Turso (`libsql://…`) |
    | `DATABASE_AUTH_TOKEN` | le jeton Turso |
-   | `SESSION_SECRET` | une longue chaîne aléatoire (≥ 32 caractères) |
-   | `APP_URL` | l'adresse finale, ex. `https://entretiens-sjr.vercel.app` |
-   | `CRON_SECRET` | une autre chaîne aléatoire |
-   | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | voir § 4 |
+   | `SESSION_SECRET` | une longue phrase aléatoire (32 caractères minimum) |
+   | `CRON_SECRET` | une autre phrase aléatoire |
+   | `APP_URL` | l'adresse du site, ex. `https://entretiens-sjr.vercel.app` (à corriger après le 1er déploiement si besoin) |
+   | `ADMIN_MATRICULE` | ton matricule |
+   | `ADMIN_PASSWORD` | un mot de passe provisoire (8 caractères minimum) |
+   | `SMTP_…` | facultatif pour commencer, voir § 4 |
 
-4. Créer les tables dans Turso, une fois, depuis un poste qui a le code :
+4. **Deploy**. Les tables de la base sont créées automatiquement pendant le déploiement.
+5. Ouvrir le site et se connecter avec `ADMIN_MATRICULE` / `ADMIN_PASSWORD`. L'application crée le compte RH et demande de choisir un vrai mot de passe. Ces deux variables ne servent plus ensuite : elles ne fonctionnent que tant qu'aucun administrateur n'existe.
+6. Dans l'application : **Campagnes** → créer la campagne, **Imports** → base agents puis circuits. Sur la fiche de chaque collègue RH, cocher « Administrateur RH ».
 
-   ```bash
-   DATABASE_URL=libsql://… DATABASE_AUTH_TOKEN=… npx drizzle-kit push
-   ```
-
-5. **Premier compte RH** : la base de production est vide. Le plus simple est de lancer la démo une fois, puis de vider les données fictives ; ou de demander à Claude un petit script « créer l'administrateur ». Ensuite : Imports → Base agents, puis cocher « Administrateur RH » sur les bons agents.
+Les relances automatiques (7 h UTC, du lundi au vendredi) sont activées automatiquement par Vercel grâce à `vercel.json`.
 
 > ⚠️ **Avant d'y mettre de vraies données** (prévu après la phase de test) : faire valider l'hébergement par la DSI et le délégué à la protection des données (DPO). Vercel et Turso sont des sociétés américaines, même avec des serveurs en Europe. L'application peut aussi tourner sur un serveur de la mairie (voir § 7).
-
----
+>
+> Le dépôt GitHub est **public** : le code est visible par tous. Il ne contient aucune donnée ni aucun mot de passe, mais il est préférable de le passer en **privé** (GitHub → Settings → Danger Zone → Change visibility). Vercel continue de fonctionner.
 
 ## 3. Tester en local (sur un PC)
 
@@ -130,7 +127,7 @@ E-mails envoyés automatiquement :
 
 **Ajouter un critère ne casse pas les anciens comptes rendus.** Les PDF des dossiers terminés sont figés et ne changent pas.
 
-Après une modification : envoyer sur GitHub, et Vercel remet automatiquement l'application en ligne en 1 à 2 minutes. Si la **structure de la base** change (`src/db/schema.ts`), relancer `npx drizzle-kit push` vers Turso.
+Après une modification : envoyer sur GitHub, et Vercel remet automatiquement l'application en ligne en 1 à 2 minutes. Si la **structure de la base** change (`src/db/schema.ts`), lancer `npm run db:generate` et envoyer le nouveau fichier du dossier `drizzle/` : la base Turso est mise à jour automatiquement au déploiement suivant.
 
 ---
 

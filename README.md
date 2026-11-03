@@ -1,4 +1,4 @@
-# Entretiens professionnels – Ville de Saint-Jean-de-la-Ruelle
+# Entretiens SJR – Entretiens professionnels de la Ville de Saint-Jean-de-la-Ruelle
 
 Application web de gestion des entretiens professionnels annuels : rédaction du compte rendu par le N+1, circuit de visas (agent → hiérarchie → agent), relances, PDF conforme au modèle de la Ville, exports pour l'archivage et le plan de formation.
 

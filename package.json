@@ -4,13 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/migrer.mjs && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "db:push": "drizzle-kit push",
     "db:seed": "tsx scripts/seed.ts",
-    "db:reset": "rm -f local.db && drizzle-kit push --force && tsx scripts/seed.ts"
+    "db:reset": "rm -f local.db && node scripts/migrer.mjs && tsx scripts/seed.ts",
+    "db:migrate": "node scripts/migrer.mjs",
+    "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "@libsql/client": "^0.15.15",
