@@ -75,6 +75,18 @@ export function circuitOrganigramme(agent: Agent, idx: Index, viseurFinal: Agent
     if (!p.actif) alertes.push(`Responsable niveau ${n} ${p.nom} ${p.prenom} est inactif (parti ?).`);
     if (p.id !== agent.id && !sup.some((x) => x.id === p.id)) sup.push(p);
   }
+  // Organigramme incomplet (ex. agent ajouté à la main avec seulement son N+1) :
+  // on remonte la hiérarchie à partir des responsables de son responsable.
+  if (!agent.responsables?.["3"] && sup.length) {
+    for (let i = 0; i < 6; i++) {
+      const dernier = sup[sup.length - 1];
+      const suivant = (["6", "5", "4", "3"] as const)
+        .map((n) => idx.trouver(dernier.responsables?.[n]))
+        .find((p) => p && p.id !== dernier.id && p.id !== agent.id && !sup.some((x) => x.id === p.id));
+      if (!suivant) break;
+      sup.push(suivant);
+    }
+  }
   if (viseurFinal && viseurFinal.id !== agent.id && !sup.some((x) => x.id === viseurFinal.id)) sup.push(viseurFinal);
   return { sup, alertes };
 }

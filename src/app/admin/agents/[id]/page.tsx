@@ -7,15 +7,17 @@ import { campagneChoisie } from "@/lib/campagne";
 import { enregistrerAgent, supprimerException } from "@/app/admin/actions";
 import { Coquille } from "@/components/Entete";
 import { BoutonCode, ChangerRedacteur, EditeurCircuit } from "@/components/EditeurCircuit";
+import { SupprimerAgent } from "@/components/SupprimerAgent";
 
 export const dynamic = "force-dynamic";
 
-export default async function PageAgent({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ campagne?: string }> }) {
+export default async function PageAgent({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ campagne?: string; cree?: string }> }) {
   const u = await exigerAdmin();
   const id = Number((await params).id);
   const [a] = await db.select().from(schema.agents).where(eq(schema.agents.id, id));
   if (!a) notFound();
-  const { toutes, choisie } = await campagneChoisie((await searchParams).campagne);
+  const sp = await searchParams;
+  const { toutes, choisie } = await campagneChoisie(sp.campagne);
   const tous = await db
     .select({ id: schema.agents.id, nom: schema.agents.nom, prenom: schema.agents.prenom, matricule: schema.agents.matricule })
     .from(schema.agents)
@@ -44,7 +46,15 @@ export default async function PageAgent({ params, searchParams }: { params: Prom
   return (
     <Coquille u={u}>
       <Link href="/admin/agents" className="text-sm text-gray-500 hover:underline">← Agents</Link>
-      <h1 className="mb-4 mt-1 text-2xl font-bold">{a.nom} {a.prenom} <span className="text-base font-normal text-gray-500">· matricule {a.matricule}</span></h1>
+      <h1 className="mb-4 mt-1 text-2xl font-bold">
+        {a.nom} {a.prenom} <span className="text-base font-normal text-gray-500">· matricule {a.matricule}</span>
+        {!a.actif && <span className="badge ml-2 bg-gray-100 align-middle text-gray-600">archivé / inactif</span>}
+      </h1>
+      {sp.cree && (
+        <p className="mb-4 rounded-lg bg-sjr-primaire-doux p-3 text-sm text-sjr-primaire-fonce">
+          ✓ Agent ajouté. Son code personnel provisoire est <strong className="font-mono tracking-widest">{a.codeProvisoire}</strong> (à lui remettre, ou imprimable depuis « Imprimer les codes »).
+        </p>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="carte p-5">
@@ -73,6 +83,13 @@ export default async function PageAgent({ params, searchParams }: { params: Prom
           <h3 className="mb-2 text-sm font-bold">Accès</h3>
           <BoutonCode agentId={a.id} code={a.codeProvisoire} />
           {a.derniereConnexion && <p className="mt-2 text-xs text-gray-500">Dernière connexion : {a.derniereConnexion.toLocaleString("fr-FR")}</p>}
+          {a.id !== u.id && (
+            <>
+              <hr className="my-4" />
+              <h3 className="mb-2 text-sm font-bold text-red-700">Supprimer</h3>
+              <SupprimerAgent id={a.id} nom={`${a.nom} ${a.prenom}`} />
+            </>
+          )}
         </section>
 
         <section className="carte p-5">

@@ -88,7 +88,8 @@ Menu **Espace RH ▾**.
 | Agent non concerné (saisonnier, vacataire…) | Fiche de l'agent → cocher **« Non concerné par les entretiens »** |
 | Agent absent toute l'année | Dossier → **« Retirer de la campagne »** |
 | **Un responsable part ou est absent** | **Remplacer une personne** : en une fois, dans tous les circuits, rédactions et exceptions |
-| Nouvel agent en cours de campagne | Réimporter l'export, puis **Créer les dossiers** (seuls les nouveaux sont ajoutés) |
+| Nouvel agent en cours de campagne | **Agents & circuits → + Ajouter un agent** : indiquez son responsable direct, le reste du circuit est déduit automatiquement et son dossier est créé. Pour plusieurs arrivées, réimportez plutôt l'export puis **Créer les dossiers** |
+| Agent parti | Fiche de l'agent → **Supprimer l'agent**. S'il a déjà des comptes rendus visés, il est **archivé** (plus de connexion ni de campagne, documents conservés), sinon il est supprimé définitivement. S'il doit encore viser des dossiers, l'application demande d'abord de le **remplacer** |
 | Mot de passe oublié | Fiche de l'agent → **« Générer un nouveau code »** |
 | Demande de révision ou recours | Dossier terminé → **« Demande de révision / recours »** |
 

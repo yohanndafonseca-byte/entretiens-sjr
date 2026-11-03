@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, eq, inArray, ne } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { db, schema } from "@/db";
 import { exigerAdmin, genererCode } from "@/lib/auth";
@@ -202,7 +202,7 @@ export async function retirerDossier(entretienId: number): Promise<{ ok: boolean
   const [e] = await db.select().from(schema.entretiens).where(eq(schema.entretiens.id, entretienId));
   if (!e) return { ok: false, message: "Dossier introuvable." };
   if (e.statut !== "redaction") return { ok: false, message: "Un dossier déjà visé ne peut pas être retiré." };
-  await db.delete(schema.entretiens).where(eq(schema.entretiens.id, entretienId));
+  await supprimerEntretien(entretienId);
   await journaliser(null, u.id, "Dossier retiré de la campagne", `Agent #${e.agentId}`);
   revalidatePath("/admin", "layout");
   return { ok: true, message: "Dossier retiré de la campagne." };
@@ -287,4 +287,126 @@ export async function visasPapierEnLot(entretienIds: number[], dateIso: string):
   }
   revalidatePath("/admin", "layout");
   return { ok: true, message: `${n} visa(s) papier enregistré(s).` };
+}
+
+export type EtatAgent = { erreur?: string } | undefined;
+
+/** Ajoute un agent à la main (arrivée entre deux exports Inser / Ciril). */
+export async function creerAgent(_: EtatAgent, fd: FormData): Promise<EtatAgent> {
+  const u = await exigerAdmin();
+  const s = (k: string) => String(fd.get(k) ?? "").trim() || null;
+  const matricule = s("matricule");
+  const nom = s("nom");
+  if (!matricule || !nom) return { erreur: "Le matricule et le nom sont obligatoires." };
+  const [existe] = await db.select({ id: schema.agents.id }).from(schema.agents).where(eq(schema.agents.matricule, matricule));
+  if (existe) return { erreur: `Le matricule ${matricule} existe déjà.` };
+  const [n3, l3, n4, l4] = (s("service") ?? "|||").split("|");
+  const responsableId = Number(fd.get("responsableId")) || null;
+  const [resp] = responsableId ? await db.select().from(schema.agents).where(eq(schema.agents.id, responsableId)) : [];
+  const code = genererCode();
+  const [a] = await db
+    .insert(schema.agents)
+    .values({
+      matricule,
+      nom: nom.toUpperCase(),
+      prenom: s("prenom") ?? "",
+      email: s("email")?.toLowerCase() ?? null,
+      statut: s("statut"),
+      categorie: s("categorie"),
+      grade: s("grade"),
+      poste: s("poste"),
+      tempsTravail: s("tempsTravail") ?? "Temps Plein",
+      collectivite: s("collectivite") ?? "Ville",
+      niv3Code: n3 || null,
+      niv3: l3 || null,
+      niv4Code: n4 || null,
+      niv4: l4 || null,
+      responsables: resp ? { "6": { email: resp.email, nom: `${resp.nom} ${resp.prenom}` } } : null,
+      passwordHash: await bcrypt.hash(code, 8),
+      codeProvisoire: code,
+      mustChangePassword: true,
+    })
+    .returning();
+  await journaliser(null, u.id, "Agent ajouté à la main", `${a.nom} ${a.prenom} (${a.matricule})`);
+  // Dossier de la campagne en cours, si demandé
+  const campagneId = Number(fd.get("campagneId")) || null;
+  if (campagneId && fd.get("creerDossier") === "on") {
+    const tous = await db.select().from(schema.agents);
+    const { indexAgents, calculerCircuit } = await import("@/lib/circuits");
+    const idx = indexAgents(tous);
+    const [camp] = await db.select().from(schema.campagnes).where(eq(schema.campagnes.id, campagneId));
+    const viseur = camp.viseurFinalId ? idx.parId.get(camp.viseurFinalId) ?? null : null;
+    const c = await calculerCircuit(a, idx, { viseurFinal: viseur, reconduire: false, annee: camp.annee });
+    if (c.sup.length) await creerOuMajDossier(campagneId, a, [a, ...c.sup, a], u.id);
+  }
+  revalidatePath("/admin/agents");
+  redirect(`/admin/agents/${a.id}?cree=1`);
+}
+
+/**
+ * Supprime un agent.
+ * - S'il doit encore viser ou rédiger pour d'autres agents : refus (le remplacer d'abord).
+ * - Ses propres dossiers pas encore visés sont supprimés.
+ * - S'il reste des comptes rendus visés (les siens, ou des visas déjà donnés) : il est ARCHIVÉ
+ *   (désactivé, hors campagne) pour conserver les documents.
+ * - Sinon : suppression définitive.
+ */
+export async function supprimerAgent(id: number): Promise<{ ok: boolean; message: string; archive?: boolean }> {
+  const u = await exigerAdmin();
+  if (id === u.id) return { ok: false, message: "Vous ne pouvez pas supprimer votre propre compte." };
+  const [a] = await db.select().from(schema.agents).where(eq(schema.agents.id, id));
+  if (!a) return { ok: false, message: "Agent introuvable." };
+
+  const enAttente = await db
+    .select({ id: schema.etapes.id })
+    .from(schema.etapes)
+    .innerJoin(schema.entretiens, eq(schema.entretiens.id, schema.etapes.entretienId))
+    .where(and(eq(schema.etapes.acteurId, id), ne(schema.entretiens.agentId, id), ne(schema.entretiens.statut, "termine"), isNull(schema.etapes.viseLe)));
+  const redige = await db
+    .select({ id: schema.entretiens.id })
+    .from(schema.entretiens)
+    .where(and(eq(schema.entretiens.redacteurId, id), ne(schema.entretiens.agentId, id), eq(schema.entretiens.statut, "redaction")));
+  const viseur = await db.select({ id: schema.campagnes.id }).from(schema.campagnes).where(and(eq(schema.campagnes.viseurFinalId, id), eq(schema.campagnes.statut, "ouverte")));
+  if (enAttente.length || redige.length || viseur.length)
+    return {
+      ok: false,
+      message: `${a.nom} ${a.prenom} doit encore intervenir sur ${enAttente.length + redige.length} dossier(s) d'autres agents${viseur.length ? " et est le dernier visa d'une campagne" : ""}. Utilisez d'abord « Remplacer une personne », puis supprimez-le.`,
+    };
+
+  // Ses dossiers non encore visés (brouillons) disparaissent
+  const siens = await db.select().from(schema.entretiens).where(eq(schema.entretiens.agentId, id));
+  for (const e of siens.filter((x) => x.statut === "redaction")) await supprimerEntretien(e.id);
+  const garde = siens.filter((x) => x.statut !== "redaction").length;
+  const enCoursDeVisa = siens.filter((x) => x.statut === "circuit").length;
+  const [visesAilleurs] = await db.select({ id: schema.etapes.id }).from(schema.etapes).where(eq(schema.etapes.acteurId, id)).limit(1);
+  const [redacteurAilleurs] = await db.select({ id: schema.entretiens.id }).from(schema.entretiens).where(eq(schema.entretiens.redacteurId, id)).limit(1);
+  const [enregistre] = await db.select({ id: schema.etapes.id }).from(schema.etapes).where(eq(schema.etapes.enregistreParId, id)).limit(1);
+
+  if (garde || visesAilleurs || redacteurAilleurs || enregistre) {
+    await db
+      .update(schema.agents)
+      .set({ actif: false, horsCampagne: true, isAdmin: false, codeProvisoire: null, circuitPersonnalise: null, updatedAt: new Date() })
+      .where(eq(schema.agents.id, id));
+    await journaliser(null, u.id, "Agent archivé", `${a.nom} ${a.prenom} (${a.matricule})`);
+    revalidatePath("/admin", "layout");
+    return {
+      ok: true,
+      archive: true,
+      message: `${a.nom} ${a.prenom} a été archivé(e) : il/elle ne peut plus se connecter et n'apparaîtra plus dans les campagnes. Ses comptes rendus et visas déjà donnés sont conservés.${enCoursDeVisa ? ` Attention : ${enCoursDeVisa} de ses comptes rendus est en cours de visa ; enregistrez son visa papier ou retirez le dossier.` : ""}`,
+    };
+  }
+  await db.update(schema.historique).set({ acteurId: null }).where(eq(schema.historique.acteurId, id));
+  await db.delete(schema.agents).where(eq(schema.agents.id, id));
+  await journaliser(null, u.id, "Agent supprimé", `${a.nom} ${a.prenom} (${a.matricule})`);
+  // la fiche n'existe plus : retour à la liste, avec le message
+  redirect(`/admin/agents?supprime=${encodeURIComponent(`${a.nom} ${a.prenom}`)}`);
+}
+
+/** Suppression complète d'un dossier et de tout ce qui s'y rattache. */
+async function supprimerEntretien(id: number) {
+  await db.delete(schema.etapes).where(eq(schema.etapes.entretienId, id));
+  await db.delete(schema.historique).where(eq(schema.historique.entretienId, id));
+  await db.delete(schema.recours).where(eq(schema.recours.entretienId, id));
+  await db.delete(schema.pdfsDefinitifs).where(eq(schema.pdfsDefinitifs.entretienId, id));
+  await db.delete(schema.entretiens).where(eq(schema.entretiens.id, id));
 }

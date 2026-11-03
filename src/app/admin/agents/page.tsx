@@ -7,7 +7,7 @@ import { Coquille } from "@/components/Entete";
 
 export const dynamic = "force-dynamic";
 
-export default async function PageAgents({ searchParams }: { searchParams: Promise<{ q?: string; filtre?: string }> }) {
+export default async function PageAgents({ searchParams }: { searchParams: Promise<{ q?: string; filtre?: string; supprime?: string }> }) {
   const u = await exigerAdmin();
   const sp = await searchParams;
   const { choisie } = await campagneChoisie();
@@ -43,9 +43,13 @@ export default async function PageAgents({ searchParams }: { searchParams: Promi
         <h1 className="text-2xl font-bold">Agents & circuits</h1>
         <div className="flex gap-2">
           <Link href="/admin/agents/codes" className="btn-secondaire">Imprimer les codes provisoires</Link>
-          <Link href="/admin/import" className="btn-primaire">Importer</Link>
+          <Link href="/admin/import" className="btn-secondaire">Importer l'export</Link>
+          <Link href="/admin/agents/nouveau" className="btn-primaire">+ Ajouter un agent</Link>
         </div>
       </div>
+      {sp.supprime && (
+        <p className="mb-4 rounded-lg bg-sjr-primaire-doux p-3 text-sm text-sjr-primaire-fonce">✓ {sp.supprime} a été supprimé(e) définitivement.</p>
+      )}
       <form className="mb-3 flex flex-wrap gap-2" action="/admin/agents">
         <input name="q" defaultValue={sp.q ?? ""} placeholder="Nom, matricule, service…" className="champ max-w-xs" />
         <select name="filtre" defaultValue={sp.filtre ?? ""} className="champ w-auto">

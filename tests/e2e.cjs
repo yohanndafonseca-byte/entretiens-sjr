@@ -286,6 +286,48 @@ async function connexion(browser, matricule, mdp = "demo1234") {
     await ctx.close();
   }
 
+  console.log("7d. Ajouter / supprimer un agent");
+  {
+    const { ctx, page } = await connexion(browser, "100001");
+    const [chef] = await q(`select a.nom, a.prenom, a.matricule, a.id from agents a where a.poste='Responsable de pôle' and a.actif=1 and a.responsables is not null limit 1`);
+    await page.goto(BASE + "/admin/agents/nouveau");
+    await page.fill("#matricule", "777001");
+    await page.fill("#nom", "Nouvel");
+    await page.fill("#prenom", "Arrivant");
+    await page.fill("#resp", `${chef.nom} ${chef.prenom} (${chef.matricule})`);
+    await page.click("button:has-text(\"Ajouter l'agent\")");
+    await page.waitForSelector("text=Agent ajouté", { timeout: 20000 });
+    const circ = await q(`select a.matricule m, a.poste p from etapes et join agents a on a.id=et.acteur_id join entretiens e on e.id=et.entretien_id join agents ag on ag.id=e.agent_id where ag.matricule='777001' order by et.ordre`);
+    ok(circ.length === 5 && circ[1].m === chef.matricule && circ[3].m === "100002", `agent ajouté + dossier créé, circuit déduit de son N+1 (${circ.map((x) => x.m).join(" → ")})`);
+    await page.screenshot({ path: `${OUT}/16-agent-ajoute.png` });
+
+    // suppression définitive (aucun compte rendu visé)
+    await page.click("button:has-text(\"Supprimer l'agent\")");
+    await page.waitForSelector("text=supprimé(e) définitivement", { timeout: 15000 });
+    ok((await q(`select count(*) n from agents where matricule='777001'`))[0].n === 0, "agent sans historique supprimé définitivement");
+
+    // refus : un responsable qui doit encore viser
+    const [occupe] = await q(`select a.id from etapes et join agents a on a.id=et.acteur_id join entretiens e on e.id=et.entretien_id
+      where et.vise_le is null and e.statut!='termine' and e.agent_id!=a.id and a.id != 1 group by a.id limit 1`);
+    await page.goto(`${BASE}/admin/agents/${occupe.id}`);
+    await page.click("button:has-text(\"Supprimer l'agent\")");
+    await page.waitForSelector("text=doit encore intervenir", { timeout: 15000 });
+    ok(true, "suppression refusée tant que la personne doit viser (lien « Remplacer »)");
+
+    // archivage : agent avec un compte rendu terminé
+    const [archi] = await q(`select a.id from agents a join entretiens e on e.agent_id=a.id where e.statut='termine'
+      and a.id not in (select et.acteur_id from etapes et join entretiens e2 on e2.id=et.entretien_id where et.vise_le is null and e2.statut!='termine' and e2.agent_id!=et.acteur_id)
+      and a.id not in (select redacteur_id from entretiens where statut='redaction' and redacteur_id is not null and agent_id!=redacteur_id)
+      and a.id not in (select viseur_final_id from campagnes where viseur_final_id is not null) and a.is_admin=0 limit 1`);
+    await page.goto(`${BASE}/admin/agents/${archi.id}`);
+    await page.click("button:has-text(\"Supprimer l'agent\")");
+    await page.waitForSelector("text=archivé(e)", { timeout: 15000 });
+    const [etat] = await q(`select actif, hors_campagne h from agents where id=?`, [archi.id]);
+    const [docs] = await q(`select count(*) n from entretiens where agent_id=? and statut='termine'`, [archi.id]);
+    ok(etat.actif === 0 && etat.h === 1 && docs.n > 0, "agent avec comptes rendus archivé, documents conservés");
+    await ctx.close();
+  }
+
   console.log("7c. Convocation (décret : 8 jours) et visas en série");
   {
     const [c] = await q(`select e.id, r.matricule rm from entretiens e join agents r on r.id=e.redacteur_id join campagnes ca on ca.id=e.campagne_id
@@ -316,6 +358,7 @@ async function connexion(browser, matricule, mdp = "demo1234") {
     await dgs.page.click("label:has-text(\"J'ai pris connaissance\") input");
     await dgs.page.click("button:has-text('Viser la sélection')");
     await dgs.page.waitForSelector("text=visa(s) enregistré(s)", { timeout: 60000 });
+    await dgs.page.waitForFunction(() => document.querySelectorAll("input[aria-label^='Sélectionner']").length === 0, null, { timeout: 15000 }).catch(() => {});
     const apres = await dgs.page.locator("input[aria-label^='Sélectionner']").count();
     ok(avant > 0 && apres === 0, `visas en série : ${avant} dossier(s) visé(s) en une fois`);
     await dgs.ctx.close();
