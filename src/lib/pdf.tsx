@@ -2,7 +2,7 @@ import "server-only";
 import React from "react";
 import { Document, Page, Text, View, Image, StyleSheet, Font, renderToBuffer } from "@react-pdf/renderer";
 import { LOGO_DATA_URI } from "./logo";
-import { ECHELLE, RUBRIQUES } from "./formulaire";
+import { contenuVide, ECHELLE, RUBRIQUES } from "./formulaire";
 import type { Dossier } from "./dossier";
 import { nomComplet } from "./dossier";
 
@@ -421,8 +421,10 @@ const nettoyer = (x: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+/** Ex. « DUPONT Marie - EP 2026 - entretien du 11-12-2026.pdf » */
 export function nomFichierPdf(d: NonNullable<Dossier>) {
-  return `${nettoyer(d.agent.nom.toUpperCase())} ${nettoyer(d.agent.prenom)} - EP ${d.campagne.annee}.pdf`;
+  const date = d.entretien.dateEntretien ? ` - entretien du ${d.entretien.dateEntretien.split("-").reverse().join("-")}` : "";
+  return `${nettoyer(d.agent.nom.toUpperCase())} ${nettoyer(d.agent.prenom)} - EP ${d.campagne.annee}${date}.pdf`;
 }
 
 /** Chemin dans l'archive zip, calqué sur le serveur : Ville|CCAS / Statut / fichier.pdf */
@@ -430,4 +432,84 @@ export function cheminServeur(d: NonNullable<Dossier>) {
   const coll = nettoyer(d.snapshot.collectivite ?? d.agent.collectivite ?? "Ville") || "Ville";
   const statut = nettoyer((d.snapshot.statut ?? d.agent.statut ?? "Autre").toLowerCase()).replace(/^./, (m) => m.toUpperCase()) || "Autre";
   return `${coll}/${statut}/${nomFichierPdf(d)}`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Convocation à l'entretien (décret n° 2014-1526, art. 3)             */
+/* ------------------------------------------------------------------ */
+
+export function formatDateHeure(local: string) {
+  const [d, h] = local.split("T");
+  const date = new Date(`${d}T12:00:00`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  return { date, heure: (h ?? "").slice(0, 5).replace(":", " h ") };
+}
+
+function Convocation({ d, quand, lieu }: { d: NonNullable<Dossier>; quand: string; lieu: string }) {
+  const { date, heure } = formatDateHeure(quand);
+  const a = d.agent;
+  const r = d.redacteur;
+  const p = { fontSize: 10.5, lineHeight: 1.55, marginBottom: 10 };
+  return (
+    <Document title={`Convocation entretien professionnel ${d.campagne.annee} - ${nomComplet(a)}`}>
+      <Page size="A4" style={[s.page, { paddingHorizontal: 60, paddingTop: 50 }]}>
+        <View style={s.entete}>
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
+          <Image src={LOGO_DATA_URI} style={{ width: 70, height: 70, marginRight: 20 }} />
+          <View>
+            <Text style={{ fontSize: 12, fontFamily: "Helvetica-Bold" }}>Ville de Saint Jean de la Ruelle</Text>
+            <Text style={{ fontSize: 9, color: "#555", marginTop: 3 }}>{[d.snapshot.niv3, d.snapshot.niv4].filter(Boolean).join(" – ")}</Text>
+          </View>
+        </View>
+        <Text style={{ fontSize: 10.5, textAlign: "right", marginBottom: 30 }}>Le {new Date().toLocaleDateString("fr-FR")}</Text>
+        <Text style={{ fontSize: 10.5, marginBottom: 2 }}>À l'attention de</Text>
+        <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", marginBottom: 30 }}>{`${a.prenom} ${a.nom.toUpperCase()}`}</Text>
+        <Text style={{ fontSize: 12, fontFamily: "Helvetica-Bold", marginBottom: 20 }}>
+          Objet : convocation à l'entretien professionnel annuel {d.campagne.annee}
+        </Text>
+        <Text style={p}>Madame, Monsieur,</Text>
+        <Text style={p}>
+          Je vous informe que votre entretien professionnel annuel aura lieu le <Text style={{ fontFamily: "Helvetica-Bold" }}>{date} à {heure}</Text>
+          {lieu ? <Text>, {lieu}</Text> : null}.
+        </Text>
+        <Text style={p}>
+          Cet entretien, conduit par votre supérieur(e) hiérarchique direct(e), portera notamment sur vos résultats professionnels au regard des objectifs qui vous ont été assignés, vos objectifs pour l'année à venir, votre manière de servir, vos acquis de l'expérience professionnelle, vos besoins de formation et vos perspectives d'évolution professionnelle.
+        </Text>
+        <Text style={p}>
+          Vous trouverez ci-joint votre fiche de poste{d.entretien.fichePosteNom ? "" : " (si elle vous a été transmise)"} ainsi qu'un exemplaire de la fiche d'entretien, afin de vous permettre de préparer cet échange.
+        </Text>
+        <Text style={[p, { marginBottom: 40 }]}>Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.</Text>
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <View style={{ width: "45%" }}>
+            <Text style={{ fontSize: 9, color: "#555" }}>Remis en main propre le : ____ / ____ / ________</Text>
+            <Text style={{ fontSize: 9, color: "#555", marginTop: 14 }}>Signature de l'agent :</Text>
+          </View>
+          <View style={{ width: "45%" }}>
+            <Text style={{ fontSize: 10.5, fontFamily: "Helvetica-Bold" }}>{r ? `${r.prenom} ${r.nom.toUpperCase()}` : ""}</Text>
+            <Text style={{ fontSize: 9.5, color: "#555" }}>{d.contenu.fonctionRedacteur}</Text>
+          </View>
+        </View>
+        <Text style={{ position: "absolute", bottom: 30, left: 60, right: 60, fontSize: 7.5, color: "#777" }}>
+          Décret n° 2014-1526 du 16 décembre 2014 relatif à l'appréciation de la valeur professionnelle des fonctionnaires territoriaux : la date de l'entretien est fixée par le supérieur hiérarchique direct et communiquée à l'agent au moins huit jours à l'avance, accompagnée de la fiche de poste et d'un exemplaire de la fiche d'entretien.
+        </Text>
+      </Page>
+    </Document>
+  );
+}
+
+export async function genererConvocation(d: NonNullable<Dossier>, quand: string, lieu: string): Promise<Buffer> {
+  return renderToBuffer(<Convocation d={d} quand={quand} lieu={lieu} />);
+}
+
+/** Fiche d'entretien à remettre avec la convocation : le modèle vierge, avec les objectifs de l'an dernier. */
+export async function genererFicheVierge(d: NonNullable<Dossier>): Promise<Buffer> {
+  const vierge = contenuVide();
+  vierge.fonctionRedacteur = d.contenu.fonctionRedacteur;
+  vierge.objectifsPrecedents = d.contenu.objectifsPrecedents.filter((o) => !o.ajouteEnCours).map((o) => ({ ...o, resultat: "", analyse: "" }));
+  const copie = {
+    ...d,
+    contenu: vierge,
+    etapes: d.etapes.map((x) => ({ ...x, viseLe: null, observations: null, modeVisa: null })),
+    entretien: { ...d.entretien, dateEntretien: d.entretien.convocationLe?.slice(0, 10) ?? null, visaRedacteurLe: null },
+  };
+  return renderToBuffer(<CompteRendu d={copie} />);
 }

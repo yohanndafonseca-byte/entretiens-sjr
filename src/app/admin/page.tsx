@@ -6,6 +6,7 @@ import { campagneChoisie } from "@/lib/campagne";
 import { lignesListe } from "@/lib/dossier";
 import { normaliserContenu, RUBRIQUES } from "@/lib/formulaire";
 import { Coquille } from "@/components/Entete";
+import { ChecklistCampagne } from "@/components/ChecklistCampagne";
 import { BarreEmpilee, Legende, RAMPE, Tuile } from "@/components/Graph";
 import { SelecteurCampagne } from "@/components/SelecteurCampagne";
 import { joursDepuis } from "@/components/Badges";
@@ -58,6 +59,14 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pr
   const pct = total ? Math.round((nTerm / total) * 100) : 0;
   const seuil = choisie.relanceJours;
   const enRetard = lignes.filter((l) => l.statut !== "termine" && joursDepuis(l.derniereActionLe) >= seuil);
+  const infos = await db
+    .select({ statut: schema.entretiens.statut, convocationLe: schema.entretiens.convocationLe, dateEntretien: schema.entretiens.dateEntretien })
+    .from(schema.entretiens)
+    .where(eq(schema.entretiens.campagneId, choisie.id));
+  const aPlanifier = infos.filter((x) => x.statut === "redaction" && !x.convocationLe && !x.dateEntretien).length;
+  const horsDelai = infos.filter(
+    (x) => x.statut === "redaction" && x.dateEntretien && Date.now() - new Date(`${x.dateEntretien}T12:00:00`).getTime() > 15 * 86_400_000,
+  ).length;
 
   // Avancement par direction
   const parDir = new Map<string, { red: number; circ: number; term: number }>();
@@ -107,6 +116,8 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pr
         </div>
         <SelecteurCampagne campagnes={toutes} choisie={choisie} action="/admin" />
       </div>
+
+      {choisie.statut === "ouverte" && <ChecklistCampagne c={choisie} compacte />}
 
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-5">
         <Tuile titre="Dossiers" valeur={total} accent />
@@ -170,12 +181,14 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pr
         </section>
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-5">
+      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-7">
         <Tuile titre="Besoins de formation" valeur={besoins} detail="exprimés dans les CR visés" />
         <Tuile titre="Évolution sur le poste" valeur={evol} detail="agents demandeurs" />
         <Tuile titre="Mobilité interne" valeur={mobInt} detail="agents demandeurs" />
         <Tuile titre="Mobilité externe" valeur={mobExt} detail="agents demandeurs" />
         <Tuile titre="Recours" valeur={nbRec.length} detail="demandes de révision" />
+        <Tuile titre="Entretiens à planifier" valeur={aPlanifier} detail="aucune date fixée par le N+1" />
+        <Tuile titre="Délai de 15 j dépassé" valeur={horsDelai} detail="CR pas encore transmis à l'agent" />
       </div>
 
       <section className="carte p-5">

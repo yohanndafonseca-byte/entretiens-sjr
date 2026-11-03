@@ -6,9 +6,10 @@ type Message = {
   to: string | null | undefined;
   sujet: string;
   corps: string;
-  type: "tour" | "relance" | "final" | "autre";
+  type: "tour" | "relance" | "final" | "convocation" | "autre";
   entretienId?: number;
-  pieceJointe?: { nom: string; contenu: Buffer };
+  pieceJointe?: { nom: string; contenu: Buffer; type?: string };
+  piecesJointes?: { nom: string; contenu: Buffer; type?: string }[];
 };
 
 let transport: nodemailer.Transporter | null | undefined;
@@ -29,6 +30,7 @@ export const urlApp = () => (process.env.APP_URL ?? "http://localhost:3000").rep
 /** Envoie (ou journalise si le SMTP n'est pas configuré) un e-mail. Ne lève jamais d'erreur. */
 export async function envoyerEmail(m: Message): Promise<boolean> {
   if (!m.to) return false;
+  const pj = [...(m.pieceJointe ? [m.pieceJointe] : []), ...(m.piecesJointes ?? [])];
   const t = transporteur();
   let statut = "journalise";
   let erreur: string | null = null;
@@ -39,7 +41,7 @@ export async function envoyerEmail(m: Message): Promise<boolean> {
         to: m.to,
         subject: m.sujet,
         text: m.corps,
-        attachments: m.pieceJointe ? [{ filename: m.pieceJointe.nom, content: m.pieceJointe.contenu }] : undefined,
+        attachments: pj.length ? pj.map((x) => ({ filename: x.nom, content: x.contenu, contentType: x.type })) : undefined,
       });
       statut = "envoye";
     } catch (e) {
@@ -50,7 +52,7 @@ export async function envoyerEmail(m: Message): Promise<boolean> {
   await db.insert(schema.emails).values({
     destinataire: m.to,
     sujet: m.sujet,
-    corps: m.corps + (m.pieceJointe ? `\n\n[Pièce jointe : ${m.pieceJointe.nom}]` : ""),
+    corps: m.corps + (pj.length ? `\n\n[Pièce(s) jointe(s) : ${pj.map((x) => x.nom).join(", ")}]` : ""),
     type: m.type,
     entretienId: m.entretienId,
     statut,

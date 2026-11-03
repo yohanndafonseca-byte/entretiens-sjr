@@ -22,10 +22,13 @@ src/lib/formulaire.ts   ← LE MODÈLE DU COMPTE RENDU (critères, libellés, é
 src/lib/pdf.tsx         ← la mise en page du PDF
 src/lib/imports.ts      ← lecture des fichiers Inser / Ciril
 src/lib/workflow.ts     ← circuit de visas, e-mails, finalisation
+src/lib/circuits.ts     ← calcul automatique des circuits (exception > an dernier > organigramme)
+src/lib/convocation.ts  ← convocation (délai de 8 jours, invitation agenda)
 src/db/schema.ts        ← structure de la base de données
 src/app/…               ← les pages
 docs/                   ← ces guides
 scripts/seed.ts         ← données FICTIVES de démonstration
+tests/e2e.cjs           ← tests automatiques dans un vrai navigateur (lancés par GitHub à chaque envoi)
 ```
 
 ---
@@ -52,7 +55,7 @@ scripts/seed.ts         ← données FICTIVES de démonstration
 
 4. **Deploy**. Les tables de la base sont créées automatiquement pendant le déploiement.
 5. Ouvrir le site et se connecter avec `ADMIN_MATRICULE` / `ADMIN_PASSWORD`. L'application crée le compte RH et demande de choisir un vrai mot de passe. Ces deux variables ne servent plus ensuite : elles ne fonctionnent que tant qu'aucun administrateur n'existe.
-6. Dans l'application : **Campagnes** → créer la campagne, **Imports** → base agents puis circuits. Sur la fiche de chaque collègue RH, cocher « Administrateur RH ».
+6. Dans l'application : **Campagnes** → créer la campagne, puis suivre la **liste de contrôle** affichée (base agents, création des dossiers, codes…). Sur la fiche de chaque collègue RH, cocher « Administrateur RH ».
 
 Les relances automatiques (7 h UTC, du lundi au vendredi) sont activées automatiquement par Vercel grâce à `vercel.json`.
 
@@ -92,6 +95,16 @@ Puis ouvrir http://localhost:3000.
 
 ---
 
+## 3 bis. Tests automatiques
+
+À chaque envoi sur GitHub, l'onglet **Actions** du dépôt lance automatiquement les tests : vérification du code, build, puis le parcours complet dans un vrai navigateur (convocation, rédaction, visas, imports, exports, droits d'accès…). Une coche verte ✓ signifie que tout fonctionne ; une croix rouge ✗ signale qu'une modification a cassé quelque chose (les captures d'écran sont téléchargeables dans le détail).
+
+En local, avec l'application lancée sur le port 3100 :
+
+```bash
+npm run test:e2e
+```
+
 ## 4. E-mails
 
 Sans configuration SMTP, **rien n'est envoyé** : les e-mails sont seulement visibles dans **Espace RH → E-mails**. C'est pratique pour tester.
@@ -108,7 +121,8 @@ SMTP_FROM="Ressources Humaines <entretiens-pro@ville-saintjeandelaruelle.fr>"
 
 E-mails envoyés automatiquement :
 - « c'est à vous » à chaque étape ;
-- relances après N jours sans action (N se règle dans la campagne) ;
+- convocation à l'entretien, avec l'invitation agenda (.ics) et les pièces jointes ;
+- relances après N jours sans action (N se règle dans la campagne), **regroupées en un seul e-mail par personne** ;
 - **PDF définitif** à l'agent après son dernier visa.
 
 ---

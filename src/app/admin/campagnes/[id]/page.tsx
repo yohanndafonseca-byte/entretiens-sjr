@@ -6,6 +6,7 @@ import { exigerAdmin } from "@/lib/auth";
 import { campagneParId } from "@/lib/campagne";
 import { enregistrerCampagne, enregistrerObjectifsService } from "@/app/admin/actions";
 import { Coquille } from "@/components/Entete";
+import { ChecklistCampagne } from "@/components/ChecklistCampagne";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,7 @@ export default async function PageCampagne({ params }: { params: Promise<{ id: s
     <Coquille u={u}>
       <Link href="/admin/campagnes" className="text-sm text-gray-500 hover:underline">← Campagnes</Link>
       <h1 className="mb-4 mt-1 text-2xl font-bold">{c.titre}</h1>
+      <ChecklistCampagne c={c} />
       <form action={enregistrerCampagne} className="carte mb-6 grid gap-3 p-5 md:grid-cols-6">
         <input type="hidden" name="id" value={c.id} />
         <div><label className="etiquette">Année</label><input name="annee" type="number" defaultValue={c.annee} className="champ" /></div>
@@ -51,6 +53,17 @@ export default async function PageCampagne({ params }: { params: Promise<{ id: s
         <div><label className="etiquette">Début</label><input name="dateDebut" type="date" defaultValue={c.dateDebut ?? ""} className="champ" /></div>
         <div><label className="etiquette">Date limite</label><input name="dateLimite" type="date" defaultValue={c.dateLimite ?? ""} className="champ" /></div>
         <div><label className="etiquette">Relance (jours)</label><input name="relanceJours" type="number" min={1} defaultValue={c.relanceJours} className="champ" /></div>
+        <div className="md:col-span-3">
+          <label className="etiquette">Dernier visa hiérarchique (autorité territoriale ou DGS par délégation)</label>
+          <select name="viseurFinalId" defaultValue={c.viseurFinalId ?? ""} className="champ">
+            <option value="">— aucun —</option>
+            {[...agents].sort((x, y) => x.nom.localeCompare(y.nom)).map((a) => (
+              <option key={a.id} value={a.id}>{a.nom} {a.prenom}{a.poste ? ` – ${a.poste}` : ""}</option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-500">Ajouté automatiquement à la fin de chaque circuit calculé, juste avant le visa final de l'agent.</p>
+        </div>
+        <div className="md:col-span-3" />
         <div className="md:col-span-5">
           <label className="etiquette">Objectifs généraux de la Ville (partie IV de tous les comptes rendus)</label>
           <textarea name="objectifsVille" rows={8} defaultValue={c.objectifsVille} className="champ" />

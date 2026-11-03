@@ -165,11 +165,23 @@ async function main() {
   const dirRes = lignes.find((l) => l.agent.niv3Code === "D30" && l.agent.poste === "Directeur.trice")!.agent;
   lignes.push({ agent: rh, chaine: [rh.id, chefRh.id, dirRes.id, dgs.id, rh.id] });
 
+  // Organigramme (colonnes RESPONSABLE NIVEAU x de l'export) : niveau 4 = chef de pôle, niveau 3 = directeur
+  const parId = new Map(lignes.map((l) => [l.agent.id, l.agent]));
+  for (const { agent, chaine } of lignes) {
+    const sup = chaine.slice(1, -1).filter((id) => id !== dgs.id).map((id) => parId.get(id)!);
+    const resp: Record<string, { email: string | null; nom: string }> = {};
+    if (sup.length === 2) {
+      resp["4"] = { email: sup[0].email, nom: `${sup[0].nom} ${sup[0].prenom}` };
+      resp["3"] = { email: sup[1].email, nom: `${sup[1].nom} ${sup[1].prenom}` };
+    } else if (sup.length === 1) resp["3"] = { email: sup[0].email, nom: `${sup[0].nom} ${sup[0].prenom}` };
+    if (Object.keys(resp).length) await db.update(schema.agents).set({ responsables: resp }).where(eq(schema.agents.id, agent.id));
+  }
+
   // Campagne 2025 : terminée
   const objectifsVille =
     "La commune de Saint-Jean-de-la-Ruelle maintient ses objectifs ambitieux afin de répondre aux attentes de ses citoyens, tout en prenant en compte les défis budgétaires et en confortant la qualité de vie au travail de ses agents.\n\n1/ Œuvrer à la qualité de vie des habitants, et améliorer la qualité de service de façon continue, en proximité\n2/ Optimiser les ressources et favoriser la sobriété des usages\n3/ Promouvoir nos Ressources Humaines : responsabiliser et impliquer les équipes";
   const [c25] = await db.insert(schema.campagnes).values({ annee: 2025, titre: "Entretiens professionnels 2025", dateDebut: "2025-11-01", dateLimite: "2026-01-31", objectifsVille, statut: "close" }).returning();
-  const [c26] = await db.insert(schema.campagnes).values({ annee: 2026, titre: "Entretiens professionnels 2026", dateDebut: "2026-11-01", dateLimite: "2026-12-31", objectifsVille, relanceJours: 5 }).returning();
+  const [c26] = await db.insert(schema.campagnes).values({ annee: 2026, titre: "Entretiens professionnels 2026", dateDebut: "2026-11-01", dateLimite: "2026-12-31", objectifsVille, relanceJours: 5, viseurFinalId: dgs.id }).returning();
   await db.insert(schema.objectifsServices).values([
     { campagneId: c26.id, niveau: 3, code: "D10", libelle: DIRECTIONS[0].libelle, texte: "Garantir un cadre éducatif cohérent, sécurisant et inclusif, favorisant l'épanouissement de tous les enfants." },
     { campagneId: c26.id, niveau: 4, code: "P11", libelle: "POLE ENFANCE", texte: "Accompagner la structuration et la stabilisation du pôle enfance par un pilotage partagé et un soutien constant aux équipes." },
@@ -205,7 +217,8 @@ async function main() {
       c2026.appreciationGenerale = "";
       c2026.objectifsPrecedents = c2026.objectifsPrecedents.map((o) => ({ ...o, resultat: "" }));
     }
-    const nbVises = statut === "termine" ? chaine.length : statut === "circuit" ? Math.floor(alea() * (chaine.length - 1)) : 0;
+    // agents sans e-mail en circuit : en attente de leur visa (papier) pour la démo « Visas papier »
+    const nbVises = statut === "termine" ? chaine.length : statut === "circuit" ? (agent.email ? Math.floor(alea() * (chaine.length - 1)) : 0) : 0;
     const age = Math.floor(alea() * 12);
     const derniere = new Date(maintenant - age * jour);
     const [e26] = await db
@@ -217,6 +230,9 @@ async function main() {
         statut,
         etapeCourante: statut === "circuit" ? nbVises + 1 : statut === "termine" ? chaine.length : 0,
         dateEntretien: complet ? "2026-11-0" + (1 + (i % 9)) : null,
+        convocationLe: complet ? `2026-11-0${1 + (i % 9)}T10:00` : r === 0 && i % 2 ? "2026-11-20T14:30" : null,
+        convocationLieu: complet || (r === 0 && i % 2) ? "Bureau du responsable" : null,
+        convocationEnvoyeeLe: complet || (r === 0 && i % 2) ? new Date(maintenant - 20 * jour) : null,
         snapshotAgent: snapshot(agent),
         contenu: c2026,
         visaRedacteurLe: statut !== "redaction" ? new Date(maintenant - (age + nbVises + 1) * jour) : null,

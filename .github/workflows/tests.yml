@@ -1,0 +1,39 @@
+# Vérifie automatiquement chaque modification envoyée sur GitHub :
+# types, build, puis le parcours complet dans un vrai navigateur (données fictives).
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SESSION_SECRET: ci-secret-0123456789abcdef0123456789abcdef
+      CRON_SECRET: test-cron
+      APP_URL: http://localhost:3100
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm run db:reset
+      - name: Démarrer l'application
+        run: (PORT=3100 npm start > server.log 2>&1 &) && npx --yes wait-on@8.0.1 http://localhost:3100/connexion
+      - run: npm run test:e2e
+      - name: Captures d'écran et journal en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultats-tests
+          path: |
+            tests/out
+            server.log

@@ -24,6 +24,8 @@ type Props = {
   entete: { agent: string; services: string[]; grade: string; poste: string; statut: string; tempsTravail: string; redacteur: string; annee: number };
   objectifsVille: string;
   objectifsDirection: { libelle: string; texte: string }[];
+  /** Appréciations de l'entretien précédent, affichées en rappel */
+  precedent?: { annee: number; notes: Record<string, number | null> } | null;
 };
 
 const SECTIONS = [
@@ -124,7 +126,7 @@ function ChoixAvis({ value, onChange, disabled }: { value: string; onChange: (v:
   );
 }
 
-export function FormulaireCR({ id, editable, contenuInitial, dateInitiale, entete, objectifsVille, objectifsDirection }: Props) {
+export function FormulaireCR({ id, editable, contenuInitial, dateInitiale, entete, objectifsVille, objectifsDirection, precedent }: Props) {
   const router = useRouter();
   const [c, setC] = useState<ContenuCR>(contenuInitial);
   const [date, setDate] = useState<string>(dateInitiale ?? "");
@@ -363,7 +365,14 @@ export function FormulaireCR({ id, editable, contenuInitial, dateInitiale, entet
                       const v = c.criteres[k.id] ?? { note: null, remarque: "" };
                       return (
                         <div key={k.id} className="grid gap-2 p-3 lg:grid-cols-12 lg:items-center">
-                          <div className="text-sm lg:col-span-4">{k.libelle}</div>
+                          <div className="text-sm lg:col-span-4">
+                            {k.libelle}
+                            {precedent?.notes[k.id] ? (
+                              <span className="mt-0.5 block text-xs text-gray-400">
+                                En {precedent.annee} : {ECHELLE.find((e) => e.valeur === precedent.notes[k.id])?.court}
+                              </span>
+                            ) : null}
+                          </div>
                           <div className="lg:col-span-5 xl:col-span-5">
                             <Pastilles note={v.note} disabled={dis} onChange={(n) => maj((x) => ((x.criteres[k.id] = { ...v, note: n }), x))} />
                           </div>

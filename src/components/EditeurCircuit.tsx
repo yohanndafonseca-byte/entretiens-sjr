@@ -52,11 +52,12 @@ export function EditeurCircuit({
   const initial = etapes.length ? etapes.map((e) => e.acteurId) : [agent.id, 0, agent.id];
   const [acteurs, setActeurs] = useState<(number | null)[]>(initial);
   const [cle, setCle] = useState(0);
+  const [exception, setException] = useState(true);
   const libre = !statut || statut === "redaction";
 
   async function sauver() {
     if (acteurs.some((a) => !a)) return setMsg({ ok: false, texte: "Une ligne du circuit est vide ou ne correspond à aucune personne." });
-    const r = await enregistrerCircuit(campagneId, agent.id, acteurs as number[]);
+    const r = await enregistrerCircuit(campagneId, agent.id, acteurs as number[], exception);
     setMsg({ ok: r.ok, texte: r.message });
     if (r.ok) router.refresh();
   }
@@ -91,6 +92,10 @@ export function EditeurCircuit({
               </li>
             ))}
           </ol>
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" className="mt-1" checked={exception} onChange={(e) => setException(e.target.checked)} />
+            <span>Garder ce circuit comme <strong>exception</strong> pour les prochaines campagnes (sinon il sera recalculé depuis l'organigramme)</span>
+          </label>
           <div className="flex flex-wrap gap-2">
             <button type="button" className="btn-secondaire" onClick={() => { setActeurs((t) => [...t.slice(0, -1), null, t[t.length - 1]]); setCle((k) => k + 1); }}>+ Ajouter un niveau avant le visa final</button>
             <button type="button" className="btn-primaire" onClick={sauver}>{entretienId ? "Enregistrer le circuit" : `Créer le dossier ${annee}`}</button>

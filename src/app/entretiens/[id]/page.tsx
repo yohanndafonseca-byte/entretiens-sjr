@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { and, desc, eq, lt } from "drizzle-orm";
+import { db, schema } from "@/db";
+import { normaliserContenu } from "@/lib/formulaire";
 import { exigerUtilisateur } from "@/lib/auth";
 import { calculerDroits, chargerDossier, nomComplet } from "@/lib/dossier";
 import { Coquille } from "@/components/Entete";
 import { FormulaireCR } from "@/components/FormulaireCR";
 import { PanneauCircuit } from "@/components/PanneauCircuit";
 import { BadgeStatut } from "@/components/Badges";
+import { CarteConvocation } from "@/components/CarteConvocation";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +21,16 @@ export default async function PageEntretien({ params }: { params: Promise<{ id: 
   if (!d) notFound();
   const droits = calculerDroits(u, d);
   if (!droits.voir) notFound();
+  const [prec] = await db
+    .select({ contenu: schema.entretiens.contenu, annee: schema.campagnes.annee })
+    .from(schema.entretiens)
+    .innerJoin(schema.campagnes, eq(schema.campagnes.id, schema.entretiens.campagneId))
+    .where(and(eq(schema.entretiens.agentId, d.agent.id), lt(schema.campagnes.annee, d.campagne.annee)))
+    .orderBy(desc(schema.campagnes.annee))
+    .limit(1);
+  const precedent = prec?.contenu
+    ? { annee: prec.annee, notes: Object.fromEntries(Object.entries(normaliserContenu(prec.contenu).criteres).map(([k, v]) => [k, v.note])) }
+    : null;
 
   const snap = d.snapshot;
   const e = d.entretien;
@@ -26,6 +40,23 @@ export default async function PageEntretien({ params }: { params: Promise<{ id: 
 
   // L'agent ne voit son compte rendu qu'une fois visé par son N+1
   const masquerPourAgent = droits.estAgent && e.statut === "redaction" && !u.isAdmin;
+  const limiteNotification =
+    e.statut === "redaction" && (e.dateEntretien || e.convocationLe)
+      ? new Date(new Date(`${(e.dateEntretien ?? e.convocationLe!).slice(0, 10)}T12:00:00`).getTime() + 15 * 86_400_000).toISOString().slice(0, 10)
+      : null;
+  const convocation = (
+    <CarteConvocation
+      id={id}
+      peutConvoquer={droits.editer}
+      convocationLe={e.convocationLe}
+      lieu={e.convocationLieu}
+      envoyeeLe={e.convocationEnvoyeeLe ? e.convocationEnvoyeeLe.toISOString() : null}
+      fichePosteNom={e.fichePosteNom}
+      agentAEmail={!!d.agent.email}
+      limiteNotification={droits.editer ? limiteNotification : null}
+      enRedaction={e.statut === "redaction"}
+    />
+  );
 
   return (
     <Coquille u={u}>
@@ -42,17 +73,21 @@ export default async function PageEntretien({ params }: { params: Promise<{ id: 
       </div>
 
       {masquerPourAgent ? (
-        <div className="carte p-8 text-center text-gray-600">
-          Votre responsable rédige actuellement le compte rendu de votre entretien. Vous recevrez une notification dès qu'il sera prêt à être visé.
+        <div className="mx-auto max-w-xl space-y-4">
+          {convocation}
+          <div className="carte p-8 text-center text-gray-600">
+            Après l'entretien, votre responsable rédige le compte rendu. Vous serez prévenu(e) dès qu'il sera prêt à être visé.
+          </div>
         </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
           <div className="min-w-0">
             <FormulaireCR
+              key={e.convocationLe ?? "sans-convocation"}
               id={id}
               editable={droits.editer}
               contenuInitial={d.contenu}
-              dateInitiale={e.dateEntretien}
+              dateInitiale={e.dateEntretien ?? e.convocationLe?.slice(0, 10) ?? null}
               entete={{
                 agent: nomComplet(d.agent),
                 services: [snap.niv3, snap.niv4, snap.niv5, snap.niv6].filter((x, i, t): x is string => !!x && t.indexOf(x) === i),
@@ -65,8 +100,11 @@ export default async function PageEntretien({ params }: { params: Promise<{ id: 
               }}
               objectifsVille={d.objectifsVille}
               objectifsDirection={d.objectifsDirection.map((o) => ({ libelle: o.libelle, texte: o.texte }))}
+              precedent={precedent}
             />
           </div>
+          <div className="space-y-4">
+          {convocation}
           <PanneauCircuit
             id={id}
             statut={e.statut}
@@ -103,6 +141,7 @@ export default async function PageEntretien({ params }: { params: Promise<{ id: 
                 : null
             }
           />
+          </div>
         </div>
       )}
     </Coquille>

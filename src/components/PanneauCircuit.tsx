@@ -6,6 +6,7 @@ import {
   enregistrerRecours,
   enregistrerVisaPapier,
   relancerMaintenant,
+  retirerDuCircuit,
   renvoyerEnRedaction,
   rouvrir,
   viser,
@@ -166,6 +167,25 @@ export function PanneauCircuit(p: Props) {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {p.droits.admin && p.statut === "redaction" && (
+        <div className="carte p-4">
+          <h2 className="mb-1 font-bold">Actions RH</h2>
+          <p className="mb-2 text-xs text-gray-600">Agent non concerné cette année (départ, longue absence, saisonnier…) ?</p>
+          <button
+            className="btn-danger w-full"
+            disabled={enCours}
+            onClick={async () => {
+              if (!confirm("Retirer ce dossier de la campagne ? Le brouillon éventuel sera supprimé.")) return;
+              const r = await retirerDuCircuit(p.id);
+              if (r.ok) router.push("/admin/dossiers");
+              else setMsg({ ok: false, texte: r.erreur });
+            }}
+          >
+            Retirer de la campagne
+          </button>
         </div>
       )}
 

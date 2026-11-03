@@ -16,6 +16,7 @@ export default async function Aide() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Bloc titre="Le circuit d'un compte rendu">
           <ol className="ml-5 list-decimal space-y-1">
+            <li><strong>Le N+1 convoque l'agent</strong> au moins 8 jours avant (convocation, fiche de poste, fiche d'entretien, invitation agenda).</li>
             <li><strong>Le N+1 rédige</strong> le compte rendu (avant, pendant ou après l'entretien). Tout est enregistré automatiquement.</li>
             <li>Il <strong>vise et transmet</strong> : le compte rendu n'est plus modifiable.</li>
             <li><strong>L'agent vise</strong> (prise de connaissance, avec observations éventuelles).</li>
@@ -30,13 +31,15 @@ export default async function Aide() {
           <p>Pas d'ordinateur ? Vous pouvez viser <strong>sur le poste de votre responsable</strong> avec votre code personnel, ou signer la version papier que les RH enregistreront.</p>
         </Bloc>
         <Bloc titre="Je suis responsable (N+1)">
-          <p>Ouvrez le dossier de l'agent depuis « À traiter ». La partie I reprend automatiquement les objectifs fixés l'an dernier.</p>
+          <p><strong>Avant l'entretien</strong> : dans le dossier, carte « 📅 Entretien », choisissez la date (au moins 8 jours plus tard) et le lieu, joignez la fiche de poste, puis envoyez la convocation.</p>
+          <p>Ouvrez le dossier de l'agent depuis « À traiter ». La partie I reprend automatiquement les objectifs fixés l'an dernier, et l'appréciation de l'an dernier est rappelée sous chaque critère.</p>
+          <p>Le compte rendu doit être transmis à l'agent dans les <strong>15 jours</strong> qui suivent l'entretien.</p>
           <p>Le bouton <strong>« Mode entretien »</strong> affiche le formulaire en plein écran, pratique pour saisir pendant l'entretien.</p>
           <p>Les champs marqués * sont obligatoires pour viser : date de l'entretien, les 15 critères, au moins un objectif, l'appréciation générale.</p>
           <p>Si l'agent est à côté de vous au moment de son visa, utilisez « Faire viser l'agent sur ce poste ».</p>
         </Bloc>
         <Bloc titre="Je suis N+2, N+3, direction">
-          <p>Vous voyez les comptes rendus de votre ligne hiérarchique. Quand c'est votre tour, ajoutez vos observations et visez.</p>
+          <p>Menu <strong>« Mes visas »</strong> : un résumé de chaque compte rendu qui attend votre visa. Cochez ceux que vous avez lus et visez-les <strong>en une fois</strong>. Pour ajouter une observation, ouvrez le dossier.</p>
           <p>Une correction de fond est nécessaire ? <strong>« Renvoyer en rédaction »</strong> avec un motif : le N+1 corrige et le circuit recommence depuis le début (les visas sont annulés).</p>
         </Bloc>
         <Bloc titre="Mot de passe">

@@ -29,6 +29,12 @@ export const agents = sqliteTable(
     niv5: text("niv5"),
     niv6Code: text("niv6_code"),
     niv6: text("niv6"),
+    /** Responsables hiérarchiques issus de l'export (colonnes RESPONSABLE / EMAIL RESPONSABLE NIVEAU 3 à 6) */
+    responsables: text("responsables", { mode: "json" }).$type<Responsables>(),
+    /** Circuit d'exception fixé par les RH (matricules dans l'ordre, sans l'agent) : prioritaire sur le calcul automatique */
+    circuitPersonnalise: text("circuit_personnalise", { mode: "json" }).$type<string[]>(),
+    /** Agent non concerné par les entretiens (saisonnier, vacataire…) : aucun dossier généré automatiquement */
+    horsCampagne: integer("hors_campagne", { mode: "boolean" }).notNull().default(false),
     actif: integer("actif", { mode: "boolean" }).notNull().default(true),
     isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
     passwordHash: text("password_hash"),
@@ -51,6 +57,8 @@ export const campagnes = sqliteTable("campagnes", {
   dateLimite: text("date_limite"),
   objectifsVille: text("objectifs_ville").notNull().default(""),
   relanceJours: integer("relance_jours").notNull().default(5),
+  /** Dernier visa hiérarchique (autorité territoriale ou DGS par délégation), ajouté en fin de circuit automatique */
+  viseurFinalId: integer("viseur_final_id"),
   statut: text("statut").notNull().default("ouverte"), // ouverte | close
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().default(now),
 });
@@ -91,6 +99,12 @@ export const entretiens = sqliteTable(
     derniereActionLe: integer("derniere_action_le", { mode: "timestamp_ms" }).notNull().default(now),
     derniereRelanceLe: integer("derniere_relance_le", { mode: "timestamp_ms" }),
     pdfEnvoyeLe: integer("pdf_envoye_le", { mode: "timestamp_ms" }),
+    /** Convocation : date et heure prévues (AAAA-MM-JJTHH:MM), lieu, date d'envoi */
+    convocationLe: text("convocation_le"),
+    convocationLieu: text("convocation_lieu"),
+    convocationEnvoyeeLe: integer("convocation_envoyee_le", { mode: "timestamp_ms" }),
+    fichePosteNom: text("fiche_poste_nom"),
+    fichePoste: blob("fiche_poste", { mode: "buffer" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().default(now),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().default(now),
   },
@@ -162,6 +176,7 @@ export const emails = sqliteTable("emails", {
   at: integer("at", { mode: "timestamp_ms" }).notNull().default(now),
 });
 
+export type Responsables = Partial<Record<"3" | "4" | "5" | "6", { email: string | null; nom: string | null }>>;
 export type Agent = typeof agents.$inferSelect;
 export type Campagne = typeof campagnes.$inferSelect;
 export type Entretien = typeof entretiens.$inferSelect;

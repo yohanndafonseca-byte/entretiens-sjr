@@ -50,6 +50,7 @@ export default async function Accueil() {
   const u = await exigerUtilisateur();
   const { lignes } = await entretiensDe(u.id);
   const aTraiter = lignes.filter((l) => l.statut !== "termine" && l.acteurCourantId === u.id);
+  const aViserSerie = aTraiter.filter((l) => l.statut === "circuit" && l.agentId !== u.id).length;
   const mesEntretiens = lignes.filter((l) => l.agentId === u.id).sort((a, b) => b.annee - a.annee);
   const equipe = lignes.filter((l) => l.agentId !== u.id && !aTraiter.includes(l));
   const enCours = equipe.filter((l) => l.statut !== "termine");
@@ -63,6 +64,17 @@ export default async function Accueil() {
           ? `Vous avez ${aTraiter.length} dossier${aTraiter.length > 1 ? "s" : ""} à traiter.`
           : "Aucun dossier n'attend d'action de votre part."}
       </p>
+
+      {aViserSerie > 1 && (
+        <Link href="/visas" className="carte mb-6 flex items-center gap-4 border-l-4 border-l-sjr-primaire p-4 transition hover:shadow-md">
+          <span className="text-2xl">✍️</span>
+          <span className="flex-1">
+            <span className="block font-bold">{aViserSerie} comptes rendus attendent votre visa</span>
+            <span className="text-sm text-gray-600">Parcourez les résumés et visez-les en série.</span>
+          </span>
+          <span className="btn-primaire">Viser en série →</span>
+        </Link>
+      )}
 
       <section className="carte mb-6 overflow-hidden">
         <div className="flex items-center justify-between border-b border-gray-100 bg-sjr-attente-doux px-4 py-3">

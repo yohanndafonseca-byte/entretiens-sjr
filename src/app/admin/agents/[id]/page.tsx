@@ -4,7 +4,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { exigerAdmin } from "@/lib/auth";
 import { campagneChoisie } from "@/lib/campagne";
-import { enregistrerAgent } from "@/app/admin/actions";
+import { enregistrerAgent, supprimerException } from "@/app/admin/actions";
 import { Coquille } from "@/components/Entete";
 import { BoutonCode, ChangerRedacteur, EditeurCircuit } from "@/components/EditeurCircuit";
 
@@ -66,6 +66,7 @@ export default async function PageAgent({ params, searchParams }: { params: Prom
             <div className="text-xs text-gray-500 md:col-span-2">Service : {[a.niv3, a.niv4, a.niv5, a.niv6].filter(Boolean).join(" › ") || "—"}</div>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="actif" defaultChecked={a.actif} /> Agent actif (peut se connecter)</label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="isAdmin" defaultChecked={a.isAdmin} /> Administrateur RH</label>
+            <label className="flex items-center gap-2 text-sm md:col-span-2"><input type="checkbox" name="horsCampagne" defaultChecked={a.horsCampagne} /> Non concerné par les entretiens (saisonnier, vacataire…) : aucun dossier créé automatiquement</label>
             <div className="md:col-span-2"><button className="btn-primaire">Enregistrer</button></div>
           </form>
           <hr className="my-4" />
@@ -84,6 +85,16 @@ export default async function PageAgent({ params, searchParams }: { params: Prom
               </form>
             )}
           </div>
+          {a.circuitPersonnalise?.length ? (
+            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg bg-sjr-attente-doux p-3 text-sm text-yellow-900">
+              <span className="flex-1">
+                <strong>Circuit d'exception</strong> : il sera repris automatiquement aux prochaines campagnes au lieu du calcul par l'organigramme.
+              </span>
+              <form action={async () => { "use server"; await supprimerException(a.id); }}>
+                <button className="btn-secondaire py-1 text-xs">Revenir au circuit automatique</button>
+              </form>
+            </div>
+          ) : null}
           {choisie ? (
             <>
               <EditeurCircuit

@@ -8,6 +8,8 @@ import { exigerUtilisateur } from "@/lib/auth";
 import { calculerDroits, chargerDossier } from "@/lib/dossier";
 import { normaliserContenu, verifierCompletude, type ContenuCR } from "@/lib/formulaire";
 import { avancer, journaliser, notifierTour, remettreEnRedaction } from "@/lib/workflow";
+import { retirerDossier } from "@/app/admin/actions";
+import { DELAI_CONVOCATION_JOURS, envoyerConvocation, joursAvant } from "@/lib/convocation";
 
 type Resultat = { ok: true; message?: string } | { ok: false, erreur: string };
 
@@ -148,4 +150,57 @@ export async function enregistrerRecours(
   await journaliser(id, u.id, "Recours mis à jour", `Décision : ${valeurs.decision}`);
   revalidatePath(`/entretiens/${id}`);
   return { ok: true, message: "Recours enregistré." };
+}
+
+export async function retirerDuCircuit(id: number): Promise<Resultat> {
+  await exigerUtilisateur();
+  const r = await retirerDossier(id);
+  return r.ok ? { ok: true, message: r.message } : { ok: false, erreur: r.message };
+}
+
+/** Le N+1 (ou les RH) fixe la date de l'entretien et envoie la convocation (≥ 8 jours avant, décret 2014-1526). */
+export async function convoquer(id: number, fd: FormData): Promise<Resultat> {
+  const { u, d, droits } = await contexte(id);
+  if (!droits.editer) return { ok: false, erreur: "Seul le responsable direct (ou les RH) peut convoquer." };
+  const quand = String(fd.get("quand") ?? "");
+  const lieu = String(fd.get("lieu") ?? "").trim();
+  const motif = String(fd.get("motif") ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(quand)) return { ok: false, erreur: "Indiquez la date et l'heure de l'entretien." };
+  const jours = joursAvant(quand);
+  if (jours < 0) return { ok: false, erreur: "La date est passée." };
+  if (jours < DELAI_CONVOCATION_JOURS && !motif)
+    return { ok: false, erreur: `Le décret prévoit une convocation au moins ${DELAI_CONVOCATION_JOURS} jours avant l'entretien (ici ${jours} jour(s)). Choisissez une date plus lointaine, ou indiquez le motif (ex. « date choisie d'un commun accord avec l'agent »).` };
+  const fichier = fd.get("fichePoste");
+  const maj: Partial<typeof schema.entretiens.$inferInsert> = { convocationLe: quand, convocationLieu: lieu || null, updatedAt: new Date(), derniereActionLe: new Date() };
+  if (fichier instanceof File && fichier.size) {
+    if (fichier.size > 5_000_000) return { ok: false, erreur: "La fiche de poste dépasse 5 Mo." };
+    maj.fichePoste = Buffer.from(await fichier.arrayBuffer());
+    maj.fichePosteNom = fichier.name;
+  }
+  await db.update(schema.entretiens).set(maj).where(eq(schema.entretiens.id, id));
+  const r = await envoyerConvocation(id, u.id, jours < DELAI_CONVOCATION_JOURS ? motif : null);
+  revalidatePath(`/entretiens/${id}`);
+  void d;
+  return {
+    ok: true,
+    message: r.emailAgent
+      ? "Convocation envoyée à l'agent par e-mail (avec l'invitation agenda, la fiche d'entretien et la fiche de poste)."
+      : "Entretien planifié. L'agent n'a pas d'e-mail : imprimez la convocation ci-dessous et remettez-la lui en main propre.",
+  };
+}
+
+/** Visa en série (ligne hiérarchique) : chaque dossier est vérifié individuellement. */
+export async function viserEnSerie(ids: number[]): Promise<Resultat> {
+  const u = await exigerUtilisateur();
+  let n = 0;
+  for (const id of ids) {
+    const d = await chargerDossier(id);
+    if (!d?.etapeCourante || d.etapeCourante.acteurId !== u.id || d.etapeCourante.estAgent) continue;
+    await poserVisa(id, d.etapeCourante.ordre, "", "en_ligne", u.id);
+    await journaliser(id, u.id, "Visa", "Visa donné depuis la liste « Mes visas » (après lecture du résumé)");
+    await avancer(id, d.etapeCourante.ordre);
+    n++;
+  }
+  revalidatePath("/visas");
+  return { ok: true, message: `${n} visa(s) enregistré(s).` };
 }

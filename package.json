@@ -11,7 +11,8 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:reset": "rm -f local.db && node scripts/migrer.mjs && tsx scripts/seed.ts",
     "db:migrate": "node scripts/migrer.mjs",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "test:e2e": "node tests/e2e.cjs"
   },
   "dependencies": {
     "@libsql/client": "^0.15.15",
@@ -23,6 +24,7 @@
     "jszip": "^3.10.1",
     "next": "^15.5.28",
     "nodemailer": "^7.0.6",
+    "pdf-lib": "^1.17.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "server-only": "^0.0.1",
@@ -35,6 +37,7 @@
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
     "drizzle-kit": "^0.31.4",
+    "playwright": "^1.63.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.13",
     "tsx": "^4.20.5",

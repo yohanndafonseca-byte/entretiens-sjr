@@ -5,12 +5,15 @@ import { deconnexion } from "@/app/auth-actions";
 const LIENS_ADMIN = [
   { href: "/admin", label: "Tableau de bord" },
   { href: "/admin/dossiers", label: "Tous les dossiers" },
-  { href: "/admin/agents", label: "Agents & circuits" },
-  { href: "/admin/import", label: "Imports" },
+  { href: "/admin/papier", label: "Visas papier" },
+  { href: "/admin/exports", label: "Exports (PDF, Excel)" },
+  { separateur: true },
   { href: "/admin/campagnes", label: "Campagnes" },
-  { href: "/admin/exports", label: "Exports" },
-  { href: "/admin/emails", label: "E-mails" },
-];
+  { href: "/admin/import", label: "Agents et dossiers (import)" },
+  { href: "/admin/agents", label: "Agents & circuits" },
+  { href: "/admin/remplacer", label: "Remplacer une personne" },
+  { href: "/admin/emails", label: "E-mails envoyés" },
+] as const;
 
 export function Entete({ u }: { u: Agent }) {
   return (
@@ -25,13 +28,16 @@ export function Entete({ u }: { u: Agent }) {
         </Link>
         <nav className="flex flex-1 flex-wrap items-center gap-1 text-sm">
           <Link href="/" className="rounded-md px-3 py-1.5 font-medium hover:bg-sjr-primaire-doux">Mes dossiers</Link>
+          <Link href="/visas" className="rounded-md px-3 py-1.5 font-medium hover:bg-sjr-primaire-doux">Mes visas</Link>
           {u.isAdmin && (
             <details className="relative">
               <summary className="cursor-pointer list-none rounded-md px-3 py-1.5 font-medium hover:bg-sjr-primaire-doux">Espace RH ▾</summary>
               <div className="absolute z-20 mt-1 w-56 rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
-                {LIENS_ADMIN.map((l) => (
+                {LIENS_ADMIN.map((l, i) =>
+                  "separateur" in l ? <hr key={i} className="my-1 border-sjr-ligne" /> : (
                   <Link key={l.href} href={l.href} className="block rounded-md px-3 py-2 hover:bg-sjr-primaire-doux hover:text-sjr-primaire-fonce">{l.label}</Link>
-                ))}
+                  ),
+                )}
               </div>
             </details>
           )}

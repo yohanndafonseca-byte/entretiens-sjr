@@ -8,8 +8,31 @@ import { genererCode } from "./auth";
 import { normEntete, type Grille } from "./tableur";
 import { journaliser } from "./workflow";
 
-export type Rapport = { crees: number; maj: number; desactives: number; ignores: number; alertes: string[]; erreurs: string[]; codes: { matricule: string; nom: string; code: string }[] };
-const rapportVide = (): Rapport => ({ crees: 0, maj: 0, desactives: 0, ignores: 0, alertes: [], erreurs: [], codes: [] });
+export type Rapport = {
+  simulation: boolean;
+  crees: number;
+  maj: number;
+  inchanges: number;
+  desactives: number;
+  ignores: number;
+  alertes: string[];
+  erreurs: string[];
+  codes: { matricule: string; nom: string; code: string }[];
+  /** Détail lisible des changements (aperçu avant validation) */
+  details: { nouveaux: string[]; departs: string[]; changements: string[]; sansEmail: number };
+};
+const rapportVide = (simulation = false): Rapport => ({
+  simulation,
+  crees: 0,
+  maj: 0,
+  inchanges: 0,
+  desactives: 0,
+  ignores: 0,
+  alertes: [],
+  erreurs: [],
+  codes: [],
+  details: { nouveaux: [], departs: [], changements: [], sansEmail: 0 },
+});
 
 /** Correspondance colonnes de l'export Inser / Ciril → champs de l'application. */
 const COLONNES: Record<string, keyof Agent> = {
@@ -68,8 +91,8 @@ async function hashCode(code: string) {
 }
 
 /** Import de l'export agents Inser / Ciril (une ligne d'en-têtes puis une ligne par agent). */
-export async function importerAgents(grille: Grille, parId: number): Promise<Rapport> {
-  const r = rapportVide();
+export async function importerAgents(grille: Grille, parId: number, simulation = false): Promise<Rapport> {
+  const r = rapportVide(simulation);
   if (grille.length < 2) {
     r.erreurs.push("Le fichier est vide.");
     return r;
@@ -81,6 +104,7 @@ export async function importerAgents(grille: Grille, parId: number): Promise<Rap
     return r;
   }
   const iDepart = idx("DATE DE DEPART");
+  const colResp = (n: number) => ({ email: idx(`EMAIL RESPONSABLE NIVEAU ${n}`), nom: idx(`RESPONSABLE NIVEAU ${n}`) });
   const existants = await db.select().from(schema.agents);
   const parMatricule = new Map(existants.map((a) => [a.matricule, a]));
 
@@ -99,6 +123,13 @@ export async function importerAgents(grille: Grille, parId: number): Promise<Rap
     const libelles = [val.niv3, val.niv4, val.niv5, val.niv6].join(" ").toUpperCase();
     const collectivite = /\bCCAS\b/.test(libelles) ? "CCAS" : "Ville";
     const parti = iDepart >= 0 && dateDepassee(ligne[iDepart]);
+    const responsables: NonNullable<Agent["responsables"]> = {};
+    for (const n of [3, 4, 5, 6] as const) {
+      const c = colResp(n);
+      const email = c.email >= 0 ? ligne[c.email]?.trim().toLowerCase() || null : null;
+      const nomResp = c.nom >= 0 ? ligne[c.nom]?.trim() || null : null;
+      if (email || nomResp) responsables[String(n) as "3"] = { email, nom: nomResp };
+    }
     const donnees = {
       nom: val.nom!.trim(),
       prenom: (val.prenom ?? "").trim(),
@@ -120,9 +151,34 @@ export async function importerAgents(grille: Grille, parId: number): Promise<Rap
       niv6Code: val.niv6Code ?? null,
       niv6: val.niv6 ?? null,
       collectivite,
+      responsables,
       updatedAt: new Date(),
     };
     const ex = parMatricule.get(matricule);
+    const libelle = `${donnees.nom} ${donnees.prenom} (${matricule})`;
+    if (!donnees.email && !parti) r.details.sansEmail++;
+    if (!ex) r.details.nouveaux.push(`${libelle}${donnees.niv4 || donnees.niv3 ? ` – ${donnees.niv4 ?? donnees.niv3}` : ""}`);
+    else if (parti && ex.actif) r.details.departs.push(libelle);
+    else if (ex) {
+      const diff: string[] = [];
+      const cmp = (lib: string, a: string | null, b: string | null) => {
+        if ((a ?? "") !== (b ?? "")) diff.push(`${lib} : ${a || "—"} → ${b || "—"}`);
+      };
+      cmp("service", ex.niv4 ?? ex.niv3, donnees.niv4 ?? donnees.niv3);
+      cmp("grade", ex.grade, donnees.grade);
+      cmp("poste", ex.poste, donnees.poste);
+      cmp("statut", ex.statut, donnees.statut);
+      cmp("e-mail", ex.email, donnees.email);
+      if (!ex.actif && !parti) diff.push("réactivé");
+      if (diff.length) r.details.changements.push(`${libelle} – ${diff.join(" ; ")}`);
+      else r.inchanges++;
+    }
+    if (simulation) {
+      if (!ex) r.crees++;
+      else if (parti && ex.actif) r.desactives++;
+      else r.maj++;
+      continue;
+    }
     try {
       if (ex) {
         await db
@@ -141,7 +197,7 @@ export async function importerAgents(grille: Grille, parId: number): Promise<Rap
       r.erreurs.push(`Ligne ${li + 1} (matricule ${matricule}) : ${e instanceof Error ? e.message : e}`);
     }
   }
-  await journaliser(null, parId, "Import agents", `${r.crees} créés, ${r.maj} mis à jour, ${r.desactives} désactivés`);
+  if (!simulation) await journaliser(null, parId, "Import agents", `${r.crees} créés, ${r.maj} mis à jour, ${r.desactives} désactivés`);
   return r;
 }
 

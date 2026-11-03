@@ -26,12 +26,22 @@ export default async function PageExports({ searchParams }: { searchParams: Prom
         <SelecteurCampagne campagnes={toutes} choisie={choisie} action="/admin/exports" />
       </div>
 
+      <section className="carte mb-6 flex flex-wrap items-center gap-4 border-t-4 border-t-sjr-primaire p-5">
+        <div className="flex-1">
+          <h2 className="titre-section">Tous les comptes rendus visés, en un clic</h2>
+          <p className="text-sm text-gray-600">
+            {nbTermines} compte(s) rendu(s) définitif(s) en PDF, nommés <code className="rounded bg-gray-100 px-1">NOM Prénom - EP {choisie.annee} - entretien du JJ-MM-AAAA.pdf</code>, avec un <strong>Sommaire.xlsx</strong> (nom, prénom, matricule, service, date de l'entretien, date du visa final).
+          </p>
+        </div>
+        <a href={`/api/export/zip?campagne=${choisie.id}&rangement=plat`} className={`btn-primaire ${nbTermines ? "" : "pointer-events-none opacity-50"}`}>⬇ Télécharger le zip</a>
+      </section>
+
       <section className="carte mb-6 p-5">
-        <h2 className="titre-section mb-1">Comptes rendus PDF (archive zip)</h2>
+        <h2 className="titre-section mb-1">Comptes rendus PDF – rangés pour le serveur</h2>
         <p className="mb-4 text-sm text-gray-600">
           {nbTermines} compte(s) rendu(s) terminé(s). L'archive est rangée comme le dossier du serveur :
-          <code className="mx-1 rounded bg-gray-100 px-1">Ville ou CCAS / Statut / NOM Prénom - EP {choisie.annee}.pdf</code>
-          → il suffit de copier son contenu dans <em>sjr / drh / communs / entretiens pro</em>.
+          <code className="mx-1 rounded bg-gray-100 px-1">Ville ou CCAS / Statut / NOM Prénom - EP {choisie.annee} - entretien du ….pdf</code>
+          → il suffit de copier son contenu dans <em>sjr / drh / communs / entretiens pro</em>. Le sommaire Excel est inclus.
         </p>
         <form action="/api/export/zip" className="grid gap-3 md:grid-cols-5">
           <input type="hidden" name="campagne" value={choisie.id} />

@@ -8,7 +8,8 @@ import { db, schema } from "@/db";
 import { exigerAdmin, genererCode } from "@/lib/auth";
 import { lireTableur } from "@/lib/tableur";
 import { creerOuMajDossier, importerAgents, importerCircuits, type Rapport } from "@/lib/imports";
-import { journaliser, notifierTour } from "@/lib/workflow";
+import { genererDossiers, type LigneCircuit } from "@/lib/circuits";
+import { avancer, journaliser, notifierTour } from "@/lib/workflow";
 
 export type EtatImport = { rapport?: Rapport; erreur?: string } | undefined;
 
@@ -17,7 +18,7 @@ export async function actionImportAgents(_: EtatImport, fd: FormData): Promise<E
   const f = fd.get("fichier");
   if (!(f instanceof File) || !f.size) return { erreur: "Choisissez un fichier." };
   try {
-    const rapport = await importerAgents(await lireTableur(f), u.id);
+    const rapport = await importerAgents(await lireTableur(f), u.id, fd.get("mode") === "apercu");
     revalidatePath("/admin", "layout");
     return { rapport };
   } catch (e) {
@@ -51,6 +52,7 @@ export async function enregistrerCampagne(fd: FormData) {
     objectifsVille: String(fd.get("objectifsVille") ?? ""),
     relanceJours: Math.max(1, Number(fd.get("relanceJours") || 5)),
     statut: String(fd.get("statut") || "ouverte"),
+    viseurFinalId: Number(fd.get("viseurFinalId")) || null,
   };
   if (!valeurs.annee) throw new Error("Année obligatoire");
   if (id) await db.update(schema.campagnes).set(valeurs).where(eq(schema.campagnes.id, id));
@@ -94,6 +96,7 @@ export async function enregistrerAgent(fd: FormData) {
       poste: s("poste"),
       tempsTravail: s("tempsTravail"),
       actif: fd.get("actif") === "on",
+      horsCampagne: fd.get("horsCampagne") === "on",
       isAdmin: fd.get("isAdmin") === "on",
       updatedAt: new Date(),
     })
@@ -114,13 +117,22 @@ export async function reinitialiserCode(id: number): Promise<string> {
 }
 
 /** Remplace le circuit complet (dossier en rédaction) ou crée le dossier. */
-export async function enregistrerCircuit(campagneId: number, agentId: number, acteurIds: number[]): Promise<{ ok: boolean; message: string }> {
+export async function enregistrerCircuit(
+  campagneId: number,
+  agentId: number,
+  acteurIds: number[],
+  garderCommeException = true,
+): Promise<{ ok: boolean; message: string }> {
   const u = await exigerAdmin();
   const ids = acteurIds.filter(Boolean);
   if (ids.length < 2) return { ok: false, message: "Le circuit doit comporter au moins l'agent et son N+1." };
   const personnes = await db.select().from(schema.agents).where(inArray(schema.agents.id, [...new Set([...ids, agentId])]));
   const parId = new Map(personnes.map((p) => [p.id, p]));
   const agent = parId.get(agentId)!;
+  if (garderCommeException) {
+    const sup = ids.filter((i) => i !== agentId).map((i) => parId.get(i)!.matricule);
+    await db.update(schema.agents).set({ circuitPersonnalise: sup }).where(eq(schema.agents.id, agentId));
+  }
   const res = await creerOuMajDossier(campagneId, agent, ids.map((i) => parId.get(i)!), u.id);
   if (res === "verrouille") return { ok: false, message: "Le dossier est déjà dans le circuit de visas : remplacez les personnes une par une ci-dessous." };
   revalidatePath(`/admin/agents/${agentId}`);
@@ -167,4 +179,112 @@ export async function relancerSelection(ids: number[]): Promise<{ ok: boolean; m
     await journaliser(e.id, u.id, "Relance groupée");
   }
   return { ok: true, message: `${es.length} relance(s) traitée(s). Voir « E-mails » pour le détail (les personnes sans adresse ne reçoivent rien).` };
+}
+
+/** Calcule (simulation) ou crée les dossiers de la campagne à partir de l'organigramme / des exceptions / de l'an dernier. */
+export async function actionGenererDossiers(campagneId: number, reconduire: boolean, simulation: boolean): Promise<LigneCircuit[]> {
+  const u = await exigerAdmin();
+  const lignes = await genererDossiers(campagneId, { reconduire }, simulation, u.id);
+  if (!simulation) revalidatePath("/admin", "layout");
+  return lignes;
+}
+
+/** Revenir au circuit automatique (supprime l'exception). */
+export async function supprimerException(agentId: number) {
+  await exigerAdmin();
+  await db.update(schema.agents).set({ circuitPersonnalise: null }).where(eq(schema.agents.id, agentId));
+  revalidatePath(`/admin/agents/${agentId}`);
+}
+
+/** Retire un dossier de la campagne (agent non concerné), uniquement s'il n'a pas encore été visé. */
+export async function retirerDossier(entretienId: number): Promise<{ ok: boolean; message: string }> {
+  const u = await exigerAdmin();
+  const [e] = await db.select().from(schema.entretiens).where(eq(schema.entretiens.id, entretienId));
+  if (!e) return { ok: false, message: "Dossier introuvable." };
+  if (e.statut !== "redaction") return { ok: false, message: "Un dossier déjà visé ne peut pas être retiré." };
+  await db.delete(schema.entretiens).where(eq(schema.entretiens.id, entretienId));
+  await journaliser(null, u.id, "Dossier retiré de la campagne", `Agent #${e.agentId}`);
+  revalidatePath("/admin", "layout");
+  return { ok: true, message: "Dossier retiré de la campagne." };
+}
+
+/**
+ * Remplace une personne partout : étapes non encore visées des dossiers en cours, rédaction (N+1),
+ * circuits d'exception et « dernier visa » des campagnes ouvertes.
+ */
+export async function remplacerPartout(ancienId: number, nouveauId: number): Promise<{ ok: boolean; message: string }> {
+  const u = await exigerAdmin();
+  if (!ancienId || !nouveauId || ancienId === nouveauId) return { ok: false, message: "Choisissez deux personnes différentes." };
+  const [ancien] = await db.select().from(schema.agents).where(eq(schema.agents.id, ancienId));
+  const [nouveau] = await db.select().from(schema.agents).where(eq(schema.agents.id, nouveauId));
+  if (!ancien || !nouveau) return { ok: false, message: "Personne introuvable." };
+  const ouvertes = await db.select({ id: schema.campagnes.id }).from(schema.campagnes).where(eq(schema.campagnes.statut, "ouverte"));
+  const idsCamp = ouvertes.map((c) => c.id);
+  let etapesMaj = 0;
+  let redac = 0;
+  const aNotifier = new Set<number>();
+  if (idsCamp.length) {
+    const dossiers = await db
+      .select()
+      .from(schema.entretiens)
+      .where(and(inArray(schema.entretiens.campagneId, idsCamp), ne(schema.entretiens.statut, "termine")));
+    for (const d of dossiers) {
+      if (d.agentId === ancienId) continue; // on ne remplace jamais l'agent évalué lui-même
+      const ets = await db.select().from(schema.etapes).where(eq(schema.etapes.entretienId, d.id));
+      for (const et of ets) {
+        if (et.acteurId === ancienId && !et.viseLe) {
+          await db.update(schema.etapes).set({ acteurId: nouveauId }).where(eq(schema.etapes.id, et.id));
+          etapesMaj++;
+          if (d.statut === "circuit" && d.etapeCourante === et.ordre) aNotifier.add(d.id);
+        }
+      }
+      if (d.statut === "redaction" && d.redacteurId === ancienId) {
+        await db.update(schema.entretiens).set({ redacteurId: nouveauId }).where(eq(schema.entretiens.id, d.id));
+        redac++;
+        aNotifier.add(d.id);
+      }
+      if (ets.some((et) => et.acteurId === ancienId && !et.viseLe) || d.redacteurId === ancienId)
+        await journaliser(d.id, u.id, "Remplacement de personne", `${ancien.nom} ${ancien.prenom} → ${nouveau.nom} ${nouveau.prenom}`);
+    }
+    await db
+      .update(schema.campagnes)
+      .set({ viseurFinalId: nouveauId })
+      .where(and(inArray(schema.campagnes.id, idsCamp), eq(schema.campagnes.viseurFinalId, ancienId)));
+  }
+  let exceptions = 0;
+  for (const a of await db.select().from(schema.agents)) {
+    if (a.circuitPersonnalise?.includes(ancien.matricule)) {
+      await db
+        .update(schema.agents)
+        .set({ circuitPersonnalise: a.circuitPersonnalise.map((m) => (m === ancien.matricule ? nouveau.matricule : m)) })
+        .where(eq(schema.agents.id, a.id));
+      exceptions++;
+    }
+  }
+  for (const id of aNotifier) await notifierTour(id);
+  await journaliser(null, u.id, "Remplacement en masse", `${ancien.nom} → ${nouveau.nom} : ${etapesMaj} visas, ${redac} rédactions, ${exceptions} exceptions`);
+  revalidatePath("/admin", "layout");
+  return {
+    ok: true,
+    message: `${ancien.nom} ${ancien.prenom} remplacé(e) par ${nouveau.nom} ${nouveau.prenom} : ${etapesMaj} visa(s) à venir, ${redac} rédaction(s), ${exceptions} circuit(s) d'exception.`,
+  };
+}
+
+/** Enregistre en une fois les visas papier reçus (agents sans accès informatique). */
+export async function visasPapierEnLot(entretienIds: number[], dateIso: string): Promise<{ ok: boolean; message: string }> {
+  const u = await exigerAdmin();
+  const date = dateIso ? new Date(`${dateIso}T12:00:00`) : new Date();
+  let n = 0;
+  for (const id of entretienIds) {
+    const [e] = await db.select().from(schema.entretiens).where(eq(schema.entretiens.id, id));
+    if (!e || e.statut !== "circuit") continue;
+    const [et] = await db.select().from(schema.etapes).where(and(eq(schema.etapes.entretienId, id), eq(schema.etapes.ordre, e.etapeCourante)));
+    if (!et || et.acteurId !== e.agentId || et.viseLe) continue;
+    await db.update(schema.etapes).set({ viseLe: date, modeVisa: "papier", enregistreParId: u.id }).where(eq(schema.etapes.id, et.id));
+    await journaliser(id, u.id, "Visa papier enregistré par les RH (lot)", `Daté du ${date.toLocaleDateString("fr-FR")}`);
+    await avancer(id, et.ordre);
+    n++;
+  }
+  revalidatePath("/admin", "layout");
+  return { ok: true, message: `${n} visa(s) papier enregistré(s).` };
 }
